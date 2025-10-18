@@ -68,10 +68,10 @@ const AnimatedLyricLine: React.FC<AnimatedLyricLineProps> = ({ lineData, current
     active: { opacity: 1, transform: 'scale(1)', filter: 'blur(0px)' },
     past: { 
       opacity: 0.5, 
-      transform: 'scale(0.9)', 
+      transform: 'scale(0.8)', 
       filter: isBlurred ? 'blur(1px)' : 'blur(0px)' // Conditionally apply blur
     },
-    future: { opacity: 0.5, transform: 'scale(0.9)', filter: 'blur(1px)' },
+    future: { opacity: 0.5, transform: 'scale(0.8)', filter: 'blur(1px)' },
   };
   
   const currentStyle = statusStyles[lineStatus];
