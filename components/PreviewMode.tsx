@@ -427,27 +427,27 @@ const PreviewMode: React.FC<PreviewModeProps> = ({
                   // FIX: Use a type guard to correctly handle the RenderableLine union type. This resolves multiple downstream type errors.
                   if ('type' in line && line.type === 'instrumental') {
                     return <div key={line.id} ref={lineRefCallback} className="h-12"></div>;
-                  }
-                  // By returning above, the type of `line` is correctly narrowed to `SyncLine` for the rest of this block.
-                  const lineGlobalIndex = sortedSyncData.findIndex(l => l.id === line.id);
-                  const isActive = activeLineIds.includes(line.id);
-                  const singer = line.singer || 1;
-                  const alignmentContainerClass = singer === 2 ? 'justify-end' : 'justify-start';
-                  const isSynced = getLineStartTime(line) !== Infinity;
-                  const nextLine = sortedSyncData[lineGlobalIndex + 1];
-                  const nextLineStartTime = nextLine ? getLineStartTime(nextLine) : (audioDuration && audioDuration > 0 ? audioDuration : null);
-                  const editButtonClass = singer === 2 ? 'left-2' : 'right-2';
+                  } else {
+                    // By placing the logic in an 'else' block, TypeScript correctly narrows the type of `line` to `SyncLine`.
+                    const lineGlobalIndex = sortedSyncData.findIndex(l => l.id === line.id);
+                    const isActive = activeLineIds.includes(line.id);
+                    const singer = line.singer || 1;
+                    const alignmentContainerClass = singer === 2 ? 'justify-end' : 'justify-start';
+                    const nextLine = sortedSyncData[lineGlobalIndex + 1];
+                    const nextLineStartTime = nextLine ? getLineStartTime(nextLine) : (audioDuration && audioDuration > 0 ? audioDuration : null);
+                    const editButtonClass = singer === 2 ? 'left-2' : 'right-2';
 
-                  return (
-                    <div ref={lineRefCallback} key={line.id} className="group/line" onClick={() => handleLineClick(line)}>
-                        <div className={`flex ${alignmentContainerClass}`}>
-                          <div className={`relative w-full max-w-4xl ${singer === 2 ? 'pl-12' : 'pr-12'}`}>
-                              <button onClick={(e) => { e.stopPropagation(); onBackToSync(lineGlobalIndex); }} className={`absolute top-1/2 -translate-y-1/2 p-2 rounded-full bg-white/10 text-white/70 hover:bg-white/20 hover:text-white transition-opacity opacity-0 group-hover/line:opacity-100 ${editButtonClass}`} title="แก้ไขท่อนนี้"><Icons name="edit" className="w-5 h-5" /></button>
-                              <AnimatedLyricLine lineData={line} currentTime={currentTime} isActive={isActive} singer={singer} nextLineStartTime={nextLineStartTime} />
+                    return (
+                      <div ref={lineRefCallback} key={line.id} className="group/line" onClick={() => handleLineClick(line)}>
+                          <div className={`flex ${alignmentContainerClass}`}>
+                            <div className={`relative w-full max-w-4xl ${singer === 2 ? 'pl-12' : 'pr-12'}`}>
+                                <button onClick={(e) => { e.stopPropagation(); onBackToSync(lineGlobalIndex); }} className={`absolute top-1/2 -translate-y-1/2 p-2 rounded-full bg-white/10 text-white/70 hover:bg-white/20 hover:text-white transition-opacity opacity-0 group-hover/line:opacity-100 ${editButtonClass}`} title="แก้ไขท่อนนี้"><Icons name="edit" className="w-5 h-5" /></button>
+                                <AnimatedLyricLine lineData={line} currentTime={currentTime} isActive={isActive} singer={singer} nextLineStartTime={nextLineStartTime} />
+                            </div>
                           </div>
-                        </div>
-                    </div>
-                  );
+                      </div>
+                    );
+                  }
               })}
               {credits && <div className="text-center mt-20 pt-10 text-gray-400 opacity-80 flex items-center justify-center gap-2"><Icons name="sparkles" className="w-5 h-5"/><p>{credits}</p></div>}
             </div>

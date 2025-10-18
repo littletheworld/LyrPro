@@ -1,9 +1,17 @@
 import { put, list, del, type ListBlobResultBlob } from '@vercel/blob';
 import { type ProjectData } from '../types';
 
-// Client-side Vercel Blob operations require a token.
-// The platform provides a unified API key for services.
-const BLOB_TOKEN = process.env.API_KEY;
+// This function checks for the presence of the API key and provides a clear,
+// user-facing error if it's missing. This is crucial for debugging setup issues.
+const getToken = (): string => {
+  const token = process.env.API_KEY;
+  if (!token) {
+    const errorMessage = 'API_KEY (Vercel BLOB_READ_WRITE_TOKEN) is not configured. Please set the environment variable to use cloud features.';
+    alert(errorMessage);
+    throw new Error(errorMessage);
+  }
+  return token;
+};
 
 /**
  * Uploads the project data to Vercel Blob storage.
@@ -19,7 +27,7 @@ export const uploadProjectToCloud = async (projectData: ProjectData): Promise<st
   try {
     const blob = await put(fileName, projectFile, {
       access: 'public',
-      token: BLOB_TOKEN,
+      token: getToken(),
     });
     return blob.url;
   } catch (error) {
@@ -33,7 +41,7 @@ export const uploadProjectToCloud = async (projectData: ProjectData): Promise<st
  */
 export const listCloudProjects = async (): Promise<ListBlobResultBlob[]> => {
   try {
-    const { blobs } = await list({ token: BLOB_TOKEN });
+    const { blobs } = await list({ token: getToken() });
     return blobs
       .filter(blob => blob.pathname.endsWith('.lsk'))
       .sort((a, b) => new Date(b.uploadedAt).getTime() - new Date(a.uploadedAt).getTime());
@@ -48,18 +56,26 @@ export const listCloudProjects = async (): Promise<ListBlobResultBlob[]> => {
  */
 export const loadProjectFromCloud = async (url: string): Promise<ProjectData> => {
   try {
+    // A token is not needed to fetch a public blob.
     const response = await fetch(url);
     if (!response.ok) {
-      throw new Error(`Failed to fetch project: ${response.statusText}`);
+      throw new Error(`Failed to fetch project file: ${response.statusText}`);
     }
     const projectData: ProjectData = await response.json();
     if (!projectData.version || !projectData.audioDataUrl || !projectData.lyrics) {
-        throw new Error("Invalid project file format");
+        throw new Error("Invalid project file format. The file might be corrupted.");
     }
     return projectData;
   } catch (error) {
     console.error('Error loading project from Vercel Blob:', error);
-    throw new Error('Failed to load project from the cloud.');
+    // Re-throw with a clearer message if it's a parsing error vs. a network error.
+    if (error instanceof SyntaxError) {
+        throw new Error('Failed to parse project data. The file may be corrupted.');
+    }
+    if (error instanceof Error && error.message.includes('fetch')) {
+        throw error;
+    }
+    throw new Error('Failed to load the project from the cloud.');
   }
 };
 
@@ -68,7 +84,7 @@ export const loadProjectFromCloud = async (url: string): Promise<ProjectData> =>
  */
 export const deleteProjectFromCloud = async (url: string): Promise<void> => {
     try {
-        await del(url, { token: BLOB_TOKEN });
+        await del(url, { token: getToken() });
     } catch (error) {
         console.error('Error deleting project from Vercel Blob:', error);
         throw new Error('Failed to delete project from the cloud.');
