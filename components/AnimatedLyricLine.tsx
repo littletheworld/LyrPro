@@ -13,7 +13,8 @@ interface AnimatedLyricLineProps {
 
 // Custom hook to get the previous value of a prop or state
 function usePrevious<T>(value: T): T | undefined {
-  const ref = useRef<T>();
+  // FIX: useRef with a generic type requires an initial value.
+  const ref = useRef<T | undefined>(undefined);
   useEffect(() => {
     ref.current = value;
   });

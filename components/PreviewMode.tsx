@@ -106,7 +106,8 @@ const PreviewMode: React.FC<PreviewModeProps> = ({
 }) => {
   const audioRef = useRef<HTMLAudioElement>(null);
   const [currentTime, setCurrentTime] = useState(0);
-  const animationFrameRef = useRef<number>();
+  // FIX: useRef with a generic type requires an initial value.
+  const animationFrameRef = useRef<number | undefined>(undefined);
   const lineRefs = useRef<Map<string, HTMLDivElement>>(new Map());
   const audioDuration = audioRef.current?.duration;
 
@@ -475,7 +476,8 @@ const PreviewMode: React.FC<PreviewModeProps> = ({
             <div>
               {linesAndPlaceholders.map((line) => {
                   const lineRefCallback = (el: HTMLDivElement | null) => { el ? lineRefs.current.set(line.id, el) : lineRefs.current.delete(line.id); };
-                  if (line.type === 'instrumental') return <div key={line.id} ref={lineRefCallback} className="h-12"></div>;
+                  // FIX: Use a type guard to correctly narrow the union type.
+                  if ('type' in line && line.type === 'instrumental') return <div key={line.id} ref={lineRefCallback} className="h-12"></div>;
                   const lineGlobalIndex = sortedSyncData.findIndex(l => l.id === line.id);
                   const isActive = activeLineIds.includes(line.id);
                   const singer = line.singer || 1;
