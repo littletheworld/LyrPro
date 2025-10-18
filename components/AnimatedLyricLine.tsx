@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { type SyncLine } from '../types';
 import { getLineStartTime, getAdlibEndTime, getMainLineEndTime } from '../utils/projectUtils';
-import ProgressFillText from '../ProgressFillText';
+import ProgressFillText from './ProgressFillText';
 
 interface AnimatedLyricLineProps {
   lineData: SyncLine;
@@ -13,11 +13,10 @@ interface AnimatedLyricLineProps {
 
 // Custom hook to get the previous value of a prop or state
 function usePrevious<T>(value: T): T | undefined {
-  // FIX: Provide an initial value to useRef to satisfy its overloads.
-  const ref = useRef<T | undefined>(undefined);
+  const ref = useRef<T>();
   useEffect(() => {
     ref.current = value;
-  }, [value]);
+  });
   return ref.current;
 }
 
@@ -68,10 +67,10 @@ const AnimatedLyricLine: React.FC<AnimatedLyricLineProps> = ({ lineData, current
     active: { opacity: 1, transform: 'scale(1)', filter: 'blur(0px)' },
     past: { 
       opacity: 0.5, 
-      transform: 'scale(0.98)', 
+      transform: 'scale(0.95)', 
       filter: isBlurred ? 'blur(1px)' : 'blur(0px)' // Conditionally apply blur
     },
-    future: { opacity: 0.5, transform: 'scale(0.98)', filter: 'blur(1px)' },
+    future: { opacity: 0.5, transform: 'scale(0.95)', filter: 'blur(1px)' },
   };
   
   const currentStyle = statusStyles[lineStatus];
@@ -94,7 +93,7 @@ const AnimatedLyricLine: React.FC<AnimatedLyricLineProps> = ({ lineData, current
   
   return (
     <div
-      className={`tracking-wide transition-[opacity,transform,filter] duration-500 ease-out ${animationClass}`}
+      className={`tracking-wide transition-[opacity,transform,filter] duration-700 ease-out ${animationClass}`}
       style={currentStyle}
     >
         <div className={`py-1 ${textAlignClass} ${fontWeight}`}>

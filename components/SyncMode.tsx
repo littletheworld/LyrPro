@@ -602,7 +602,7 @@ export const SyncMode: React.FC<SyncModeProps> = ({ audioUrl, audioFile, lyrics,
         
         <div className="flex justify-center items-center gap-4 mt-6 flex-wrap">
             <Button variant="secondary" onClick={() => changeLine(Math.max(0, currentLine - 1), { seek: true })} disabled={currentLine === 0} icon={<Icons name="prev"/>} title="ไปยังบรรทัดก่อนหน้าและรีเซ็ตเวลา">
-                ก่อนหน้า
+                บรรทัดก่อนหน้า
             </Button>
             <Button 
                 onClick={() => onFinish(currentLine)} 
@@ -610,12 +610,12 @@ export const SyncMode: React.FC<SyncModeProps> = ({ audioUrl, audioFile, lyrics,
                 disabled={unsyncedLinesCount > 0}
                 title={unsyncedLinesCount > 0 ? `ต้องซิงก์อีก ${unsyncedLinesCount} บรรทัด` : "เสร็จสิ้นการซิงก์และเข้าสู่โหมดพรีวิว"}
             >
-                เสร็จสิ้น
+                จบการซิงก์
             </Button>
         </div>
         <div className="flex justify-center items-center gap-4 mt-4">
-            <Button variant="secondary" onClick={onBack} icon={<Icons name="edit" className="w-5 h-5"/>} title="กลับไปแก้ไขโครงสร้างเนื้อเพลง">แก้โครงสร้าง</Button>
-            <Button variant="secondary" onClick={handleResetTimings} icon={<Icons name="reset" className="w-5 h-5"/>} title="ลบข้อมูลเวลาที่ซิงก์ไว้ทั้งหมด">รีเซ็ต</Button>
+            <Button variant="secondary" onClick={onBack} icon={<Icons name="edit" className="w-5 h-5"/>} title="กลับไปแก้ไขโครงสร้างเนื้อเพลง">กลับไปจัดโครงสร้าง</Button>
+            <Button variant="secondary" onClick={handleResetTimings} icon={<Icons name="reset" className="w-5 h-5"/>} title="ลบข้อมูลเวลาที่ซิงก์ไว้ทั้งหมด">รีเซ็ตเวลา</Button>
         </div>
         <div className="text-center mt-4 h-6">
             {unsyncedLinesCount > 0 ? (
@@ -628,7 +628,7 @@ export const SyncMode: React.FC<SyncModeProps> = ({ audioUrl, audioFile, lyrics,
                         className="text-sm font-semibold text-blue-600 hover:text-blue-800 underline transition-colors"
                         title="ข้ามไปซิงก์บรรทัดถัดไปที่ยังไม่เสร็จ"
                     >
-                        ข้ามไป
+                        ข้ามไปท่อนถัดไป
                     </button>
                 </div>
             ) : (

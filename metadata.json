@@ -1,5 +1,5 @@
 {
-  "name": "[ONLINE] LyricSync Pro",
+  "name": "LyricSync Pro",
   "description": "An advanced tool for creating karaoke-style lyrics with precise, character-by-character synchronization. Upload audio, type lyrics, sync with a precision slider, and export as an Enhanced LRC file.",
   "requestFramePermissions": []
 }

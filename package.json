@@ -1,5 +1,5 @@
 {
-  "name": "[online]-lyricsync-pro",
+  "name": "lyricsync-pro",
   "private": true,
   "version": "0.0.0",
   "type": "module",
@@ -10,8 +10,7 @@
   },
   "dependencies": {
     "react": "19.0.0-rc.0",
-    "react-dom": "19.0.0-rc.0",
-    "@vercel/blob": "0.23.2"
+    "react-dom": "19.0.0-rc.0"
   },
   "devDependencies": {
     "@types/node": "^22.14.0",
