@@ -171,7 +171,7 @@ const App: React.FC = () => {
               </p>
             </header>
           )}
-          <main className="w-full max-w-4xl">
+          <main className={`w-full max-w-4xl transition-transform duration-300 ${mode === AppMode.Sync ? 'scale-80 origin-top' : ''}`}>
             {renderMainContent()}
           </main>
         </div>
