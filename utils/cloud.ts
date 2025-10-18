@@ -1,22 +1,15 @@
 import { put, list, del, type ListBlobResultBlob } from '@vercel/blob';
 import { type ProjectData } from '../types';
 
-// This function checks for the presence of the API key and provides a clear,
-// user-facing error if it's missing. This is crucial for debugging setup issues.
+// This function reads the token from Vite's `import.meta.env` object,
+// which is the correct way to access environment variables on the client side.
 const getToken = (): string => {
-  // Check if process.env is available at all. This is a common issue in client-side environments
-  // without a specific build step to inject environment variables.
-  if (typeof process === 'undefined' || typeof process.env === 'undefined') {
-    const errorMessage = 'The "process.env" object is not available in this browser environment. Cloud features require a build step to inject environment variables. This is a limitation of the hosting platform, not the application itself.';
-    alert(errorMessage);
-    throw new Error(errorMessage);
-  }
-  
-  // Vercel automatically provides BLOB_READ_WRITE_TOKEN.
-  // We also check for API_KEY for backward compatibility or alternative setups.
-  const token = process.env.BLOB_READ_WRITE_TOKEN || process.env.API_KEY;
+  // Vite exposes env variables on import.meta.env.
+  // To expose a variable to the client, it MUST be prefixed with `VITE_`.
+  const token = import.meta.env.VITE_BLOB_READ_WRITE_TOKEN || import.meta.env.VITE_API_KEY;
+
   if (!token) {
-    const errorMessage = 'Cloud storage token (BLOB_READ_WRITE_TOKEN or API_KEY) was not found in `process.env`. Please ensure it is set correctly in your Vercel project settings and that your project setup (e.g., using a framework like Next.js with NEXT_PUBLIC_) exposes it to the client-side browser environment.';
+    const errorMessage = 'Cloud storage token was not found. Please set `VITE_BLOB_READ_WRITE_TOKEN` as an environment variable in your Vercel project settings. The "VITE_" prefix is required for it to be accessible in the browser.';
     alert(errorMessage);
     throw new Error(errorMessage);
   }
@@ -73,7 +66,7 @@ export const listCloudProjects = async (): Promise<ListBlobResultBlob[]> => {
  */
 export const loadProjectFromCloud = async (url: string): Promise<ProjectData> => {
   try {
-    // A token is not needed to fetch a public blob.
+    // A token isisis not needed to fetch a public blob.
     const response = await fetch(url);
     if (!response.ok) {
       throw new Error(`Failed to fetch project file: ${response.statusText}`);
