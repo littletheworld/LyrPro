@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { type SyncLine } from '../types';
 import { getLineStartTime, getAdlibEndTime, getMainLineEndTime } from '../utils/projectUtils';
-import ProgressFillText from './ProgressFillText';
+import ProgressFillText from '../ProgressFillText';
 
 interface AnimatedLyricLineProps {
   lineData: SyncLine;
@@ -14,7 +14,7 @@ interface AnimatedLyricLineProps {
 // Custom hook to get the previous value of a prop or state
 function usePrevious<T>(value: T): T | undefined {
   // FIX: Provide an initial value to useRef to satisfy its overloads.
-  const ref = useRef<T | undefined>();
+  const ref = useRef<T | undefined>(undefined);
   useEffect(() => {
     ref.current = value;
   }, [value]);
