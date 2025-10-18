@@ -107,7 +107,8 @@ const PreviewMode: React.FC<PreviewModeProps> = ({
 }) => {
   const audioRef = useRef<HTMLAudioElement>(null);
   const [currentTime, setCurrentTime] = useState(0);
-  const animationFrameRef = useRef<number | undefined>();
+  // FIX: Provide an initial value to useRef to satisfy its overloads. This resolves the "Expected 1 arguments, but got 0" error.
+  const animationFrameRef = useRef<number | undefined>(undefined);
   const lineRefs = useRef<Map<string, HTMLDivElement>>(new Map());
   const audioDuration = audioRef.current?.duration;
   const [anchorLineId, setAnchorLineId] = useState<string | null>(null);
@@ -481,7 +482,12 @@ const PreviewMode: React.FC<PreviewModeProps> = ({
               const isActive = activeLineIds.includes(line.id);
 
               return (
-                  <div key={line.id} ref={el => { if (el) lineRefs.current.set(line.id, el); else lineRefs.current.delete(line.id); }} onClick={() => handleLineClick(line)}>
+                  <div
+                    key={line.id}
+                    ref={el => { if (el) lineRefs.current.set(line.id, el); else lineRefs.current.delete(line.id); }}
+                    onClick={() => handleLineClick(line)}
+                    className="group/line relative cursor-pointer"
+                  >
                       <AnimatedLyricLine
                           lineData={line}
                           currentTime={currentTime}
@@ -489,6 +495,17 @@ const PreviewMode: React.FC<PreviewModeProps> = ({
                           singer={line.singer || 1}
                           nextLineStartTime={nextLineStartTime}
                       />
+                      <button
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            onBackToSync(currentLineIndex);
+                        }}
+                        className={`absolute top-1/2 -translate-y-1/2 p-2 rounded-full bg-white/10 hover:bg-white/20 transition-all opacity-0 group-hover/line:opacity-100 focus:opacity-100 ${ (line.singer || 1) === 2 ? 'left-0' : 'right-0' }`}
+                        title="แก้ไขการซิงก์ท่อนนี้"
+                        aria-label="แก้ไขการซิงก์ท่อนนี้"
+                      >
+                          <Icons name="edit" className="w-5 h-5" />
+                      </button>
                   </div>
               );
           })}
