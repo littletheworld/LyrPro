@@ -2,8 +2,8 @@ import { put, list, del, type ListBlobResultBlob } from '@vercel/blob';
 import { type ProjectData } from '../types';
 
 // Client-side Vercel Blob operations require a token.
-// This should be provided via an environment variable named BLOB_READ_WRITE_TOKEN.
-const BLOB_TOKEN = process.env.BLOB_READ_WRITE_TOKEN;
+// The platform provides a unified API key for services.
+const BLOB_TOKEN = process.env.API_KEY;
 
 /**
  * Uploads the project data to Vercel Blob storage.
