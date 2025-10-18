@@ -371,7 +371,7 @@ const SetupMode: React.FC<SetupModeProps> = ({ onStartSync, onLoadProject }) => 
               </div>
               <div className="md:col-span-2">
                 <input type="file" accept="audio/*" ref={fileInputRef} onChange={handleFileChange} className="hidden" />
-                <input type="file" accept=".lsk" ref={projectInputRef} onChange={handleProjectFileChange} className="hidden" />
+                <input type="file" accept=".lsk,application/json,.json" ref={projectInputRef} onChange={handleProjectFileChange} className="hidden" />
                 <div className={uploadAreaClasses} onClick={handleUploadClick}>
                   <p className={`font-semibold ${selectedFile ? 'text-blue-800' : 'text-gray-600'}`}>{selectedFile ? `✓ ${selectedFile.name}` : '📁 คลิกเพื่ออัพโหลดไฟล์เสียง'}</p>
                 </div>
