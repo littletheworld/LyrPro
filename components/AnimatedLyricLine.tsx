@@ -68,10 +68,10 @@ const AnimatedLyricLine: React.FC<AnimatedLyricLineProps> = ({ lineData, current
     active: { opacity: 1, transform: 'scale(1)', filter: 'blur(0px)' },
     past: { 
       opacity: 0.5, 
-      transform: 'scale(0.95)', 
+      transform: 'scale(0.98)', 
       filter: isBlurred ? 'blur(1px)' : 'blur(0px)' // Conditionally apply blur
     },
-    future: { opacity: 0.5, transform: 'scale(0.95)', filter: 'blur(1px)' },
+    future: { opacity: 0.5, transform: 'scale(0.98)', filter: 'blur(1px)' },
   };
   
   const currentStyle = statusStyles[lineStatus];
@@ -94,7 +94,7 @@ const AnimatedLyricLine: React.FC<AnimatedLyricLineProps> = ({ lineData, current
   
   return (
     <div
-      className={`tracking-wide transition-[opacity,transform,filter] duration-700 ease-out ${animationClass}`}
+      className={`tracking-wide transition-[opacity,transform,filter] duration-500 ease-out ${animationClass}`}
       style={currentStyle}
     >
         <div className={`py-1 ${textAlignClass} ${fontWeight}`}>

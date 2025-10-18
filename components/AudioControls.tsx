@@ -186,7 +186,7 @@ const AudioControls: React.FC<AudioControlsProps> = ({
              <button onClick={() => handleSkip(-10)} className={`p-2.5 rounded-full transition-colors bg-white hover:bg-gray-200 text-gray-700 shadow-sm`} aria-label="Rewind 10 seconds" title="ย้อนกลับ 10 วินาที"><Icons name="replay" className="w-5 h-5 transform scale-x-[-1]" /></button>
             <button onClick={handlePlayPause} className={`p-3 rounded-full transition-colors bg-white hover:bg-gray-200 text-gray-700 shadow-sm`} aria-label={isPlaying ? 'Pause' : 'Play'} title={isPlaying ? 'หยุดเล่น' : 'เล่น'}><Icons name={isPlaying ? 'pause' : 'play'} className="w-7 h-7" /></button>
             <button onClick={() => handleSkip(10)} className={`p-2.5 rounded-full transition-colors bg-white hover:bg-gray-200 text-gray-700 shadow-sm`} aria-label="Forward 10 seconds" title="ข้ามไปข้างหน้า 10 วินาที"><Icons name="replay" className="w-5 h-5" /></button>
-            {onReplayLine && ( <Button variant="secondary" onClick={onReplayLine} icon={<Icons name="replay" className="w-5 h-5"/>} title="เริ่มซิงก์บรรทัดปัจจุบันใหม่อีกครั้ง">ซิงก์ท่อนนี้ใหม่</Button> )}
+            {onReplayLine && ( <Button variant="secondary" onClick={onReplayLine} icon={<Icons name="replay" className="w-5 h-5"/>} title="เริ่มซิงก์บรรทัดปัจจุบันใหม่อีกครั้ง">ซิงก์ใหม่</Button> )}
         </div>
     </div>
   );

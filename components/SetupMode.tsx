@@ -253,34 +253,55 @@ const SetupMode: React.FC<SetupModeProps> = ({ onStartSync, onLoadProject, onGoT
         </Card>
       )}
       <Card className="p-6 md:p-8 space-y-6">
-        <div className="space-y-6">
-          <div>
-            <h2 className="text-xl font-bold text-gray-800 border-l-4 border-blue-500 pl-4 mb-3">1. ข้อมูลเพลง</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-               <div className="md:col-span-1 flex flex-col gap-4">
-                  <input type="text" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="ชื่อเพลง" className="w-full p-3 bg-gray-50 text-gray-800 rounded-xl border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:outline-none transition-colors duration-300" />
-                  <input type="text" value={artist} onChange={(e) => setArtist(e.target.value)} placeholder="ศิลปิน" className="w-full p-3 bg-gray-50 text-gray-800 rounded-xl border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:outline-none transition-colors duration-300" />
-                  <input type="text" value={credits} onChange={(e) => setCredits(e.target.value)} placeholder="Written by..." className="w-full p-3 bg-gray-50 text-gray-800 rounded-xl border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:outline-none transition-colors duration-300" />
-              </div>
-              <div className="md:col-span-1">
-                 <input type="file" accept="image/*" ref={artInputRef} onChange={handleArtFileChange} className="hidden" />
-                 <div className={`border-2 border-dashed rounded-xl w-full h-full min-h-[120px] flex items-center justify-center cursor-pointer transition-all duration-300 ${albumArtUrl ? 'border-blue-400 p-1' : 'border-gray-300 hover:bg-gray-100'}`} onClick={handleArtUploadClick} title="อัพโหลดปกเพลง">
-                    {albumArtUrl ? ( <img src={albumArtUrl} alt="Album Art Preview" className="w-full h-full object-cover rounded-lg" /> ) : ( <div className="text-center text-gray-500"><Icons name="photo" className="w-8 h-8 mx-auto" /><span className="text-xs font-semibold mt-1 block">ปกเพลง</span></div> )}
-                 </div>
-              </div>
-              <div className="md:col-span-2">
-                <input type="file" accept="audio/*" ref={fileInputRef} onChange={handleFileChange} className="hidden" />
-                <input type="file" accept=".lsk,application/json,.json" ref={projectInputRef} onChange={handleProjectFileChange} className="hidden" />
-                <div className={uploadAreaClasses} onClick={handleUploadClick}>
-                  <p className={`font-semibold ${selectedFile ? 'text-blue-800' : 'text-gray-600'}`}>{selectedFile ? `✓ ${selectedFile.name}` : '📁 คลิกเพื่ออัพโหลดไฟล์เสียง'}</p>
+        <div>
+            <h2 className="text-xl font-bold text-gray-800 border-l-4 border-blue-500 pl-4 mb-6">1. ข้อมูลเพลง & เนื้อเพลง</h2>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-x-8 gap-y-6">
+                {/* Left Column */}
+                <div className="space-y-6">
+                    {/* Album Art + Metadata */}
+                    <div className="flex flex-col sm:flex-row items-start gap-4">
+                        <div className="w-full sm:w-1/3 shrink-0">
+                            <input type="file" accept="image/*" ref={artInputRef} onChange={handleArtFileChange} className="hidden" />
+                            <div 
+                                className={`border-2 border-dashed rounded-xl w-full aspect-square flex items-center justify-center cursor-pointer transition-all duration-300 ${albumArtUrl ? 'border-blue-400 p-1' : 'border-gray-300 hover:bg-gray-100'}`} 
+                                onClick={handleArtUploadClick} 
+                                title="อัพโหลดปกเพลง"
+                            >
+                                {albumArtUrl ? (
+                                    <img src={albumArtUrl} alt="Album Art Preview" className="w-full h-full object-cover rounded-lg" />
+                                ) : (
+                                    <div className="text-center text-gray-500">
+                                        <Icons name="photo" className="w-8 h-8 mx-auto" />
+                                        <span className="text-xs font-semibold mt-1 block">ปกเพลง</span>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                        <div className="w-full flex-grow flex flex-col gap-4">
+                            <input type="text" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="ชื่อเพลง" className="w-full p-3 bg-gray-50 text-gray-800 rounded-xl border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:outline-none transition-colors duration-300" />
+                            <input type="text" value={artist} onChange={(e) => setArtist(e.target.value)} placeholder="ศิลปิน" className="w-full p-3 bg-gray-50 text-gray-800 rounded-xl border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:outline-none transition-colors duration-300" />
+                            <input type="text" value={credits} onChange={(e) => setCredits(e.target.value)} placeholder="Written by..." className="w-full p-3 bg-gray-50 text-gray-800 rounded-xl border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:outline-none transition-colors duration-300" />
+                        </div>
+                    </div>
+                    {/* Audio Uploader */}
+                    <div>
+                        <input type="file" accept="audio/*" ref={fileInputRef} onChange={handleFileChange} className="hidden" />
+                        <input type="file" accept=".lsk,application/json,.json" ref={projectInputRef} onChange={handleProjectFileChange} className="hidden" />
+                        <div className={uploadAreaClasses} onClick={handleUploadClick}>
+                            <p className={`font-semibold ${selectedFile ? 'text-blue-800' : 'text-gray-600'}`}>{selectedFile ? `✓ ${selectedFile.name}` : '📁 คลิกเพื่ออัพโหลดไฟล์เสียง'}</p>
+                        </div>
+                    </div>
                 </div>
-              </div>
+                {/* Right Column */}
+                <div className="h-full flex flex-col">
+                    <textarea 
+                        value={lyricsText} 
+                        onChange={(e) => setLyricsText(e.target.value)} 
+                        placeholder="เช่น&#10;1: เห็นฉันไหม (นักร้อง 1)&#10;2: ได้ยินเพลงของฉันหรือเปล่า (นักร้อง 2)&#10;(ไม่มีเลข) = นักร้อง 1" 
+                        className="w-full h-48 lg:h-full lg:flex-grow p-4 bg-gray-50 text-gray-800 rounded-xl border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:outline-none resize-y transition-colors duration-300 placeholder:text-gray-400" 
+                    />
+                </div>
             </div>
-          </div>
-          <div>
-            <h2 className="text-xl font-bold text-gray-800 border-l-4 border-blue-500 pl-4 mb-3">2. เนื้อเพลง</h2>
-            <textarea value={lyricsText} onChange={(e) => setLyricsText(e.target.value)} placeholder="เช่น&#10;1: เห็นฉันไหม (นักร้อง 1)&#10;2: ได้ยินเพลงของฉันหรือเปล่า (นักร้อง 2)&#10;(ไม่มีเลข) = นักร้อง 1" className="w-full h-48 p-4 bg-gray-50 text-gray-800 rounded-xl border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:outline-none resize-y transition-colors duration-300 placeholder:text-gray-400" />
-          </div>
         </div>
         <div className="pt-2">
             <div className="text-center">
