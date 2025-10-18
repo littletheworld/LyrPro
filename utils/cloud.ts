@@ -4,11 +4,19 @@ import { type ProjectData } from '../types';
 // This function checks for the presence of the API key and provides a clear,
 // user-facing error if it's missing. This is crucial for debugging setup issues.
 const getToken = (): string => {
+  // Check if process.env is available at all. This is a common issue in client-side environments
+  // without a specific build step to inject environment variables.
+  if (typeof process === 'undefined' || typeof process.env === 'undefined') {
+    const errorMessage = 'The "process.env" object is not available in this browser environment. Cloud features require a build step to inject environment variables. This is a limitation of the hosting platform, not the application itself.';
+    alert(errorMessage);
+    throw new Error(errorMessage);
+  }
+  
   // Vercel automatically provides BLOB_READ_WRITE_TOKEN.
   // We also check for API_KEY for backward compatibility or alternative setups.
   const token = process.env.BLOB_READ_WRITE_TOKEN || process.env.API_KEY;
   if (!token) {
-    const errorMessage = 'Cloud storage token (BLOB_READ_WRITE_TOKEN) is not configured. Please set the environment variable to use cloud features.';
+    const errorMessage = 'Cloud storage token (BLOB_READ_WRITE_TOKEN or API_KEY) was not found in `process.env`. Please ensure it is set correctly in your Vercel project settings and that your project setup (e.g., using a framework like Next.js with NEXT_PUBLIC_) exposes it to the client-side browser environment.';
     alert(errorMessage);
     throw new Error(errorMessage);
   }
@@ -34,6 +42,10 @@ export const uploadProjectToCloud = async (projectData: ProjectData): Promise<st
     return blob.url;
   } catch (error) {
     console.error('Error uploading to Vercel Blob:', error);
+    // Avoid showing the generic alert again if getToken already did.
+    if (!(error instanceof Error && error.message.includes('token'))) {
+      alert(`Failed to save project to the cloud: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
     throw new Error('Failed to save project to the cloud.');
   }
 };
@@ -49,6 +61,9 @@ export const listCloudProjects = async (): Promise<ListBlobResultBlob[]> => {
       .sort((a, b) => new Date(b.uploadedAt).getTime() - new Date(a.uploadedAt).getTime());
   } catch (error) {
     console.error('Error listing projects from Vercel Blob:', error);
+     if (!(error instanceof Error && error.message.includes('token'))) {
+      alert(`Failed to list cloud projects: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
     throw new Error('Failed to list cloud projects.');
   }
 };
@@ -89,6 +104,9 @@ export const deleteProjectFromCloud = async (url: string): Promise<void> => {
         await del(url, { token: getToken() });
     } catch (error) {
         console.error('Error deleting project from Vercel Blob:', error);
+        if (!(error instanceof Error && error.message.includes('token'))) {
+          alert(`Failed to delete project from the cloud: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        }
         throw new Error('Failed to delete project from the cloud.');
     }
 };
