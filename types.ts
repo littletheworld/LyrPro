@@ -20,3 +20,15 @@ export interface SyncLine {
   label?: string; // Optional label for the line (e.g., Verse 1, Chorus)
   singer?: number; // Optional: 1 for Singer 1 (left), 2 for Singer 2 (right)
 }
+
+export interface ProjectData {
+  version: number;
+  audioFileName: string;
+  audioDataUrl: string;
+  lyrics: string[];
+  syncData: SyncLine[];
+  songTitle: string;
+  artist: string;
+  albumArtUrl: string | null;
+  credits: string;
+}

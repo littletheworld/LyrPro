@@ -1,7 +1,8 @@
 import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
-import { type SyncLine, type AdlibPart } from '../types';
+import { type SyncLine } from '../types';
 import AnimatedLyricLine from './AnimatedLyricLine';
-import { saveProjectFile, exportToLrcFile, getLineStartTime, getLineEndTime, getAdlibStartTime, getAdlibEndTime } from '../utils/projectUtils';
+import { prepareProjectData, saveProjectFile, exportToLrcFile, getLineStartTime, getLineEndTime } from '../utils/projectUtils';
+import { uploadProjectToCloud } from '../utils/cloud';
 import { extractDominantColors } from '../utils/colorExtractor';
 import AudioControls from './AudioControls';
 import Icons from './Icons';
@@ -109,78 +110,52 @@ const PreviewMode: React.FC<PreviewModeProps> = ({
   const animationFrameRef = useRef<number>();
   const lineRefs = useRef<Map<string, HTMLDivElement>>(new Map());
   const audioDuration = audioRef.current?.duration;
-
   const [anchorLineId, setAnchorLineId] = useState<string | null>(null);
   const activeGroupIdRef = useRef<string | null>(null);
   const [isAutoScrolling, setIsAutoScrolling] = useState(true);
-
-  // Vocal Remover State and Refs
   const [isVocalRemoverOn, setIsVocalRemoverOn] = useState(false);
   const audioContextRef = useRef<AudioContext | null>(null);
   const hasAudioGraphSetup = useRef(false);
   const bypassGainRef = useRef<GainNode | null>(null);
   const effectGainRef = useRef<GainNode | null>(null);
-
-  // New states for dynamic background and metadata editing
   const [dynamicBgColors, setDynamicBgColors] = useState<string[]>([]);
   const [isEditingMetadata, setIsEditingMetadata] = useState(false);
   const [isControlsVisible, setIsControlsVisible] = useState(false);
   const controlsTimerRef = useRef<number | null>(null);
+  const [cloudSaveState, setCloudSaveState] = useState<'idle' | 'saving' | 'success' | 'error'>('idle');
 
 
   const sortedSyncData = useMemo(() => {
     return [...syncData].sort((a, b) => getLineStartTime(a) - getLineStartTime(b));
   }, [syncData]);
   
-  // Dynamic Background Color Extraction
   useEffect(() => {
-    if (albumArtUrl) {
-      extractDominantColors(albumArtUrl).then(setDynamicBgColors);
-    } else {
-      // Clear colors to revert to default if there's no album art
-      setDynamicBgColors([]);
-    }
+    if (albumArtUrl) extractDominantColors(albumArtUrl).then(setDynamicBgColors);
+    else setDynamicBgColors([]);
   }, [albumArtUrl]);
 
   const dynamicBgStyle = useMemo(() => {
     if (dynamicBgColors.length < 2) return {};
-    return {
-        background: `linear-gradient(-45deg, ${dynamicBgColors[0]}, ${dynamicBgColors[1]}, ${dynamicBgColors[0]})`,
-        backgroundSize: '400% 400%',
-        animation: 'gradient-flow 30s ease infinite'
-    };
+    return { background: `linear-gradient(-45deg, ${dynamicBgColors[0]}, ${dynamicBgColors[1]}, ${dynamicBgColors[0]})`, backgroundSize: '400% 400%', animation: 'gradient-flow 30s ease infinite' };
   }, [dynamicBgColors]);
 
-  const topFadeStyle = useMemo(() => ({
-    background: `linear-gradient(to bottom, ${dynamicBgColors[0] || '#0f0c29'} 15%, transparent)`
-  }), [dynamicBgColors]);
+  const topFadeStyle = useMemo(() => ({ background: `linear-gradient(to bottom, ${dynamicBgColors[0] || '#0f0c29'} 15%, transparent)` }), [dynamicBgColors]);
+  const bottomFadeStyle = useMemo(() => ({ background: `linear-gradient(to top, ${dynamicBgColors[0] || '#0f0c29'} 15%, transparent)` }), [dynamicBgColors]);
 
-  const bottomFadeStyle = useMemo(() => ({
-      background: `linear-gradient(to top, ${dynamicBgColors[0] || '#0f0c29'} 15%, transparent)`
-  }), [dynamicBgColors]);
-
-  // Web Audio API setup for Vocal Remover
   useEffect(() => {
     const audio = audioRef.current;
     if (!audio || hasAudioGraphSetup.current) return;
-
     hasAudioGraphSetup.current = true;
     try {
         const context = new (window.AudioContext || (window as any).webkitAudioContext)();
         audioContextRef.current = context;
-
         const source = context.createMediaElementSource(audio);
         const splitter = context.createChannelSplitter(2);
         const merger = context.createChannelMerger(2);
-        const invert = context.createGain();
-        invert.gain.value = -1;
+        const invert = context.createGain(); invert.gain.value = -1;
         const monoMix = context.createGain();
-        
-        const bypassGain = context.createGain();
-        bypassGainRef.current = bypassGain;
-        const effectGain = context.createGain();
-        effectGainRef.current = effectGain;
-
+        const bypassGain = context.createGain(); bypassGainRef.current = bypassGain;
+        const effectGain = context.createGain(); effectGainRef.current = effectGain;
         source.connect(splitter);
         splitter.connect(merger, 0, 0);
         splitter.connect(merger, 1, 1);
@@ -193,17 +168,12 @@ const PreviewMode: React.FC<PreviewModeProps> = ({
         effectGain.connect(context.destination);
         bypassGain.gain.value = 1;
         effectGain.gain.value = 0;
-
     } catch (e) { console.error("Could not create AudioContext for vocal remover:", e); }
-    
     const resumeContext = () => { if (audioContextRef.current && audioContextRef.current.state === 'suspended') { audioContextRef.current.resume(); } };
     const handleFirstPlay = () => { resumeContext(); audio.removeEventListener('play', handleFirstPlay); };
     audio.addEventListener('play', handleFirstPlay);
-
-    return () => {
-        audio.removeEventListener('play', handleFirstPlay);
-        if (audioContextRef.current && audioContextRef.current.state !== 'closed') { audioContextRef.current.close().catch(console.error); }
-    };
+    // FIX: Changed console.error to an arrow function to avoid potential context issues and add more descriptive logging.
+    return () => { audio.removeEventListener('play', handleFirstPlay); if (audioContextRef.current && audioContextRef.current.state !== 'closed') { audioContextRef.current.close().catch(e => console.error("Error closing AudioContext:", e)); } };
   }, []);
 
   useEffect(() => {
@@ -226,22 +196,13 @@ const PreviewMode: React.FC<PreviewModeProps> = ({
   
   const showAndAutoHideControls = useCallback(() => {
     setIsControlsVisible(true);
-    if (controlsTimerRef.current) {
-        clearTimeout(controlsTimerRef.current);
-    }
-    controlsTimerRef.current = window.setTimeout(() => {
-        setIsControlsVisible(false);
-    }, 3000); // Hide after 3 seconds of inactivity
+    if (controlsTimerRef.current) clearTimeout(controlsTimerRef.current);
+    controlsTimerRef.current = window.setTimeout(() => setIsControlsVisible(false), 3000);
   }, []);
 
   useEffect(() => {
-    // Show controls for a moment when the component mounts for discoverability
     showAndAutoHideControls();
-    return () => {
-        if (controlsTimerRef.current) {
-            clearTimeout(controlsTimerRef.current);
-        }
-    };
+    return () => { if (controlsTimerRef.current) clearTimeout(controlsTimerRef.current); };
   }, [showAndAutoHideControls]);
 
   useEffect(() => {
@@ -263,7 +224,7 @@ const PreviewMode: React.FC<PreviewModeProps> = ({
   }, [initialLineIndex, sortedSyncData]);
 
   const updateCurrentTime = useCallback(() => {
-    if (audioRef.current) { setCurrentTime(audioRef.current.currentTime); }
+    if (audioRef.current) setCurrentTime(audioRef.current.currentTime);
     animationFrameRef.current = requestAnimationFrame(updateCurrentTime);
   }, []);
 
@@ -285,6 +246,21 @@ const PreviewMode: React.FC<PreviewModeProps> = ({
   
   const handleSaveProject = useCallback(() => {
     saveProjectFile(audioFile, lyrics, syncData, songTitle, artist, albumArtUrl, credits);
+  }, [audioFile, lyrics, syncData, songTitle, artist, albumArtUrl, credits]);
+
+  const handleSaveToCloud = useCallback(async () => {
+    setCloudSaveState('saving');
+    try {
+        const projectData = await prepareProjectData(audioFile, lyrics, syncData, songTitle, artist, albumArtUrl, credits);
+        await uploadProjectToCloud(projectData);
+        setCloudSaveState('success');
+        setTimeout(() => setCloudSaveState('idle'), 2000); // Reset after 2s
+    } catch (error) {
+        console.error("Cloud save failed:", error);
+        setCloudSaveState('error');
+        alert("เกิดข้อผิดพลาดในการบันทึกโปรเจกต์ขึ้นคลาวด์");
+        setTimeout(() => setCloudSaveState('idle'), 2000);
+    }
   }, [audioFile, lyrics, syncData, songTitle, artist, albumArtUrl, credits]);
 
   const handleExportLrc = useCallback(() => {
@@ -418,64 +394,38 @@ const PreviewMode: React.FC<PreviewModeProps> = ({
         reader.readAsDataURL(updates.newArtFile!);
       });
     }
-    onUpdateMetadata({
-      title: updates.title,
-      artist: updates.artist,
-      credits: updates.credits,
-      albumArtUrl: newArtUrl,
-    });
+    onUpdateMetadata({ title: updates.title, artist: updates.artist, credits: updates.credits, albumArtUrl: newArtUrl });
   };
 
   return (
-    <div
-      className="fixed inset-0 bg-black text-white flex flex-col z-50 karaoke-bg"
-      style={dynamicBgStyle}
-      onMouseMove={showAndAutoHideControls}
-      onTouchStart={showAndAutoHideControls}
-    >
+    <div className="fixed inset-0 bg-black text-white flex flex-col z-50 karaoke-bg" style={dynamicBgStyle} onMouseMove={showAndAutoHideControls} onTouchStart={showAndAutoHideControls}>
       <audio ref={audioRef} src={audioUrl} className="hidden" crossOrigin="anonymous" />
-       <MetadataEditorModal 
-          isOpen={isEditingMetadata}
-          onClose={() => setIsEditingMetadata(false)}
-          onSave={handleSaveMetadata}
-          initialData={{ title: songTitle, artist: artist, credits: credits, artUrl: albumArtUrl }}
-       />
-
-      {/* Full-width, borderless Metadata Display */}
+       <MetadataEditorModal isOpen={isEditingMetadata} onClose={() => setIsEditingMetadata(false)} onSave={handleSaveMetadata} initialData={{ title: songTitle, artist: artist, credits: credits, artUrl: albumArtUrl }} />
       <div className="absolute top-0 left-0 right-0 z-20 backdrop-blur-md">
           <div className="w-full max-w-5xl mx-auto px-4 md:px-8 py-4">
               <div className="flex items-center gap-3">
-                  {albumArtUrl && (
-                      <img src={albumArtUrl} alt={`${artist} - ${songTitle}`} className="w-16 h-16 object-cover rounded-md shadow-md flex-shrink-0" />
-                  )}
+                  {albumArtUrl && <img src={albumArtUrl} alt={`${artist} - ${songTitle}`} className="w-16 h-16 object-cover rounded-md shadow-md flex-shrink-0" />}
                   <div className="flex-grow min-w-0">
                       <div className="flex items-start gap-2">
                           <div className="truncate">
                               <h2 className="text-base font-bold text-white truncate [text-shadow:0_1px_3px_rgba(0,0,0,0.5)]" title={songTitle}>{songTitle || 'Untitled Song'}</h2>
                               <p className="text-sm text-gray-300 truncate [text-shadow:0_1px_3px_rgba(0,0,0,0.5)]" title={artist}>{artist || 'Unknown Artist'}</p>
                           </div>
-                          <button onClick={() => setIsEditingMetadata(true)} className="p-1 rounded-full text-gray-300 hover:bg-white/20 hover:text-white transition-opacity shrink-0" title="แก้ไขข้อมูลเพลง">
-                              <Icons name="pencil-square" className="w-4 h-4"/>
-                          </button>
+                          <button onClick={() => setIsEditingMetadata(true)} className="p-1 rounded-full text-gray-300 hover:bg-white/20 hover:text-white transition-opacity shrink-0" title="แก้ไขข้อมูลเพลง"><Icons name="pencil-square" className="w-4 h-4"/></button>
                       </div>
                   </div>
               </div>
           </div>
       </div>
-      
       <div className="relative w-full h-full flex flex-col overflow-hidden">
          <div style={topFadeStyle} className="absolute top-0 left-0 right-0 h-40 z-10 pointer-events-none"></div>
          <div style={bottomFadeStyle} className="absolute bottom-0 left-0 right-0 h-40 z-10 pointer-events-none"></div>
-
-          <div 
-            onWheel={handleUserScroll}
-            onTouchStart={handleUserScroll}
-            className="w-full max-w-5xl mx-auto flex-grow overflow-y-auto overflow-x-hidden scroll-smooth scroll-pt-[35vh] pt-[35vh] pb-[60vh] px-4 md:px-8"
-          >
+          <div onWheel={handleUserScroll} onTouchStart={handleUserScroll} className="w-full max-w-5xl mx-auto flex-grow overflow-y-auto overflow-x-hidden scroll-smooth scroll-pt-[35vh] pt-[35vh] pb-[60vh] px-4 md:px-8">
             <div>
               {linesAndPlaceholders.map((line) => {
                   const lineRefCallback = (el: HTMLDivElement | null) => { el ? lineRefs.current.set(line.id, el) : lineRefs.current.delete(line.id); };
-                  if (line.type === 'instrumental') return <div key={line.id} ref={lineRefCallback} className="h-12"></div>;
+                  // FIX: Use a type guard to correctly handle the RenderableLine union type. This resolves multiple downstream type errors.
+                  if ('type' in line && line.type === 'instrumental') return <div key={line.id} ref={lineRefCallback} className="h-12"></div>;
                   const lineGlobalIndex = sortedSyncData.findIndex(l => l.id === line.id);
                   const isActive = activeLineIds.includes(line.id);
                   const singer = line.singer || 1;
@@ -489,44 +439,18 @@ const PreviewMode: React.FC<PreviewModeProps> = ({
                     <div ref={lineRefCallback} key={line.id} className="group/line" onClick={() => handleLineClick(line)}>
                         <div className={`flex ${alignmentContainerClass}`}>
                           <div className={`relative w-full max-w-4xl ${singer === 2 ? 'pl-12' : 'pr-12'}`}>
-                              <button
-                                onClick={(e) => { e.stopPropagation(); onBackToSync(lineGlobalIndex); }}
-                                className={`absolute top-1/2 -translate-y-1/2 p-2 rounded-full bg-white/10 text-white/70 hover:bg-white/20 hover:text-white transition-opacity opacity-0 group-hover/line:opacity-100 ${editButtonClass}`}
-                                title="แก้ไขท่อนนี้"
-                              >
-                                <Icons name="edit" className="w-5 h-5" />
-                              </button>
-                              <AnimatedLyricLine
-                                  lineData={line}
-                                  currentTime={currentTime}
-                                  isActive={isActive}
-                                  singer={singer}
-                                  nextLineStartTime={nextLineStartTime}
-                              />
+                              <button onClick={(e) => { e.stopPropagation(); onBackToSync(lineGlobalIndex); }} className={`absolute top-1/2 -translate-y-1/2 p-2 rounded-full bg-white/10 text-white/70 hover:bg-white/20 hover:text-white transition-opacity opacity-0 group-hover/line:opacity-100 ${editButtonClass}`} title="แก้ไขท่อนนี้"><Icons name="edit" className="w-5 h-5" /></button>
+                              <AnimatedLyricLine lineData={line} currentTime={currentTime} isActive={isActive} singer={singer} nextLineStartTime={nextLineStartTime} />
                           </div>
                         </div>
                     </div>
                   );
               })}
-              {credits && (
-                  <div className="text-center mt-20 pt-10 text-gray-400 opacity-80 flex items-center justify-center gap-2">
-                    <Icons name="sparkles" className="w-5 h-5"/>
-                    <p>{credits}</p>
-                  </div>
-              )}
+              {credits && <div className="text-center mt-20 pt-10 text-gray-400 opacity-80 flex items-center justify-center gap-2"><Icons name="sparkles" className="w-5 h-5"/><p>{credits}</p></div>}
             </div>
-            {!isAutoScrolling && (
-                <button
-                    onClick={handleResumeAutoScroll}
-                    className={`fixed right-6 z-50 p-3 rounded-full bg-blue-600 text-white shadow-lg hover:bg-blue-700 transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-white ${isControlsVisible ? 'bottom-40' : 'bottom-24'}`}
-                    title="กลับไปที่ท่อนปัจจุบัน"
-                >
-                    <Icons name="chevron-down" className="w-6 h-6" />
-                </button>
-            )}
+            {!isAutoScrolling && <button onClick={handleResumeAutoScroll} className={`fixed right-6 z-50 p-3 rounded-full bg-blue-600 text-white shadow-lg hover:bg-blue-700 transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-white ${isControlsVisible ? 'bottom-40' : 'bottom-24'}`} title="กลับไปที่ท่อนปัจจุบัน"><Icons name="chevron-down" className="w-6 h-6" /></button>}
           </div>
       </div>
-      
       <AudioControls 
         audioRef={audioRef}
         showPreviewControls
@@ -537,6 +461,8 @@ const PreviewMode: React.FC<PreviewModeProps> = ({
         isVocalRemoverOn={isVocalRemoverOn}
         onToggleVocalRemover={handleToggleVocalRemover}
         isVisible={isControlsVisible}
+        onSaveToCloud={handleSaveToCloud}
+        cloudSaveState={cloudSaveState}
       />
     </div>
   );
