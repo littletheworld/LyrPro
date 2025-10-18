@@ -4,9 +4,11 @@ import { type ProjectData } from '../types';
 // This function checks for the presence of the API key and provides a clear,
 // user-facing error if it's missing. This is crucial for debugging setup issues.
 const getToken = (): string => {
-  const token = process.env.API_KEY;
+  // Vercel automatically provides BLOB_READ_WRITE_TOKEN.
+  // We also check for API_KEY for backward compatibility or alternative setups.
+  const token = process.env.BLOB_READ_WRITE_TOKEN || process.env.API_KEY;
   if (!token) {
-    const errorMessage = 'API_KEY (Vercel BLOB_READ_WRITE_TOKEN) is not configured. Please set the environment variable to use cloud features.';
+    const errorMessage = 'Cloud storage token (BLOB_READ_WRITE_TOKEN) is not configured. Please set the environment variable to use cloud features.';
     alert(errorMessage);
     throw new Error(errorMessage);
   }
