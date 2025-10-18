@@ -1,9 +1,11 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { AppMode, type SyncLine } from './types';
+import { AppMode, type SyncLine, type ProjectData } from './types';
 import SetupMode from './components/SetupMode';
 import { StructureMode } from './components/StructureMode';
 import { SyncMode } from './components/SyncMode';
 import PreviewMode from './components/PreviewMode';
+import ProjectsMode from './components/ProjectsMode';
+import { dataUrlToFile } from './utils/projectUtils';
 
 const App: React.FC = () => {
   const [mode, setMode] = useState<AppMode>(AppMode.Setup);
@@ -60,6 +62,24 @@ const App: React.FC = () => {
     setAlbumArtUrl(artUrl);
     setCredits(creditsText);
     setMode(AppMode.Sync); // Go directly to sync mode for loaded projects
+  }, []);
+  
+  const handleOpenProjectPreview = useCallback(async (projectData: ProjectData) => {
+      const audioFile = await dataUrlToFile(projectData.audioDataUrl, projectData.audioFileName);
+      setAudioFile(audioFile);
+      setLyrics(projectData.lyrics);
+      setRawLines(projectData.lyrics);
+      setSyncData(projectData.syncData);
+      setSongTitle(projectData.songTitle);
+      setArtist(projectData.artist);
+      setAlbumArtUrl(projectData.albumArtUrl);
+      setCredits(projectData.credits);
+      setMode(AppMode.Preview);
+      setInitialPreviewLineIndex(0); // Start preview from beginning
+  }, []);
+
+  const handleGoToProjects = useCallback(() => {
+      setMode(AppMode.Projects);
   }, []);
 
   const handleFinishStructuring = useCallback((newSyncData: SyncLine[]) => {
@@ -125,6 +145,13 @@ const App: React.FC = () => {
 
   const renderMainContent = () => {
     switch (mode) {
+      case AppMode.Projects:
+        return (
+          <ProjectsMode 
+            onOpenProject={handleOpenProjectPreview} 
+            onBack={() => setMode(AppMode.Setup)} 
+          />
+        );
       case AppMode.Structure:
         return (
           <StructureMode 
@@ -153,7 +180,7 @@ const App: React.FC = () => {
         );
       case AppMode.Setup:
       default:
-        return <SetupMode onStartSync={handleStartStructuring} onLoadProject={handleLoadProject} />;
+        return <SetupMode onStartSync={handleStartStructuring} onLoadProject={handleLoadProject} onGoToProjects={handleGoToProjects} />;
     }
   };
 
@@ -171,7 +198,7 @@ const App: React.FC = () => {
               </p>
             </header>
           )}
-          <main className="w-full max-w-4xl">
+          <main className="w-full max-w-6xl">
             {renderMainContent()}
           </main>
         </div>

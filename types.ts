@@ -3,6 +3,7 @@ export enum AppMode {
   Structure,
   Sync,
   Preview,
+  Projects,
 }
 
 export interface AdlibPart {

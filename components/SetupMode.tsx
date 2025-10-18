@@ -1,120 +1,21 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
-import type { ListBlobResultBlob } from '@vercel/blob';
 import Card from './GlassCard';
 import Button from './Button';
 import Icons from './Icons';
 import { type SyncLine, type ProjectData } from '../types';
 import { dataUrlToFile } from '../utils/projectUtils';
-import { listCloudProjects, loadProjectFromCloud, deleteProjectFromCloud } from '../utils/cloud';
 
 interface SetupModeProps {
   onStartSync: (file: File, lyrics: string, title: string, artist: string, albumArtUrl: string | null, credits: string) => void;
   onLoadProject: (file: File, lyrics: string[], syncData: SyncLine[], title: string, artist: string, albumArtUrl: string | null, credits: string) => void;
+  onGoToProjects: () => void;
 }
 
 const AUTOSAVE_KEY = 'lyric-sync-pro-autosave';
 const SETUP_AUTOSAVE_KEY = 'lyric-sync-pro-setup-draft';
 
-const CloudProjectsModal: React.FC<{
-    isOpen: boolean;
-    onClose: () => void;
-    onLoadProject: (projectData: ProjectData) => void;
-}> = ({ isOpen, onClose, onLoadProject }) => {
-    const [projects, setProjects] = useState<ListBlobResultBlob[]>([]);
-    const [status, setStatus] = useState<'idle' | 'loading' | 'error'>('loading');
 
-    const fetchProjects = useCallback(async () => {
-        setStatus('loading');
-        try {
-            const cloudProjects = await listCloudProjects();
-            setProjects(cloudProjects);
-            setStatus('idle');
-        } catch (error) {
-            console.error(error);
-            setStatus('error');
-        }
-    }, []);
-
-    useEffect(() => {
-        if (isOpen) {
-            fetchProjects();
-        }
-    }, [isOpen, fetchProjects]);
-
-    const handleLoad = async (url: string) => {
-        try {
-            const projectData = await loadProjectFromCloud(url);
-            onLoadProject(projectData);
-            onClose();
-        } catch (error) {
-            alert(`ไม่สามารถโหลดโปรเจกต์ได้: ${error instanceof Error ? error.message : 'Unknown error'}`);
-        }
-    };
-    
-    const handleDelete = async (url: string) => {
-        if (window.confirm('คุณแน่ใจหรือไม่ว่าต้องการลบโปรเจกต์นี้จากคลาวด์? การกระทำนี้ไม่สามารถย้อนกลับได้')) {
-            try {
-                await deleteProjectFromCloud(url);
-                await fetchProjects(); // Refresh the list
-            } catch (error) {
-                alert(`เกิดข้อผิดพลาดในการลบ: ${error instanceof Error ? error.message : 'Unknown error'}`);
-            }
-        }
-    };
-
-    if (!isOpen) return null;
-
-    const getProjectName = (pathname: string) => {
-        const parts = pathname.replace(/\.lsk$/, '').split('-');
-        if (parts.length > 2) {
-            const artist = parts[0].replace(/_/g, ' ').replace(/(^\w)/, c => c.toUpperCase());
-            const title = parts.slice(1, -1).join('-').replace(/_/g, ' ').replace(/(^\w)/, c => c.toUpperCase());
-            return `${artist} - ${title}`;
-        }
-        return pathname.replace(/\.lsk$/, '').replace(/_/g, ' ');
-    };
-
-    return (
-        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4" onClick={onClose}>
-            <div className="bg-white text-gray-800 rounded-2xl shadow-xl w-full max-w-2xl max-h-[80vh] flex flex-col" onClick={e => e.stopPropagation()}>
-                <div className="p-4 border-b">
-                    <h3 className="text-xl font-bold">โหลดโปรเจกต์จากคลาวด์</h3>
-                </div>
-                <div className="p-4 flex-grow overflow-y-auto">
-                    {status === 'loading' && <p className="text-center text-gray-500">กำลังโหลด...</p>}
-                    {status === 'error' && <p className="text-center text-red-500">เกิดข้อผิดพลาดในการโหลดรายการโปรเจกต์</p>}
-                    {status === 'idle' && projects.length === 0 && <p className="text-center text-gray-500">ไม่พบโปรเจกต์ที่บันทึกไว้บนคลาวด์</p>}
-                    {status === 'idle' && projects.length > 0 && (
-                        <ul className="space-y-3">
-                            {projects.map(p => (
-                                <li key={p.pathname} className="flex items-center justify-between gap-3 p-3 bg-gray-50 rounded-lg border">
-                                    <div>
-                                        <p className="font-semibold truncate" title={p.pathname}>{getProjectName(p.pathname)}</p>
-                                        <p className="text-xs text-gray-500">
-                                            บันทึกเมื่อ: {new Date(p.uploadedAt).toLocaleString()}
-                                        </p>
-                                    </div>
-                                    <div className="flex gap-2 shrink-0">
-                                        <Button onClick={() => handleLoad(p.url)} variant="primary">โหลด</Button>
-                                        <Button onClick={() => handleDelete(p.url)} variant="secondary" title="ลบโปรเจกต์">
-                                            <Icons name="trash" className="w-5 h-5"/>
-                                        </Button>
-                                    </div>
-                                </li>
-                            ))}
-                        </ul>
-                    )}
-                </div>
-                 <div className="p-4 border-t text-right">
-                    <Button variant="secondary" onClick={onClose}>ปิด</Button>
-                </div>
-            </div>
-        </div>
-    );
-};
-
-
-const SetupMode: React.FC<SetupModeProps> = ({ onStartSync, onLoadProject }) => {
+const SetupMode: React.FC<SetupModeProps> = ({ onStartSync, onLoadProject, onGoToProjects }) => {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [lyricsText, setLyricsText] = useState('');
   const [title, setTitle] = useState('');
@@ -125,7 +26,6 @@ const SetupMode: React.FC<SetupModeProps> = ({ onStartSync, onLoadProject }) => 
   const [savedSession, setSavedSession] = useState<any>(null);
   const [savedSetupDraft, setSavedSetupDraft] = useState<any>(null);
   const [restoredFromSessionData, setRestoredFromSessionData] = useState<{lyrics: string[], syncData: SyncLine[]} | null>(null);
-  const [isCloudModalOpen, setIsCloudModalOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const projectInputRef = useRef<HTMLInputElement>(null);
   const artInputRef = useRef<HTMLInputElement>(null);
@@ -223,7 +123,7 @@ const SetupMode: React.FC<SetupModeProps> = ({ onStartSync, onLoadProject }) => 
             const text = e.target?.result;
             if (typeof text !== 'string') throw new Error("File is not readable");
             const projectData: ProjectData = JSON.parse(text);
-            handleCloudProjectLoad(projectData);
+            handleProjectLoad(projectData);
         } catch (error) {
             console.error("Failed to load project:", error);
             alert("ไม่สามารถโหลดไฟล์โปรเจกต์ได้ อาจเป็นไฟล์ที่ไม่ถูกต้อง");
@@ -232,7 +132,7 @@ const SetupMode: React.FC<SetupModeProps> = ({ onStartSync, onLoadProject }) => 
     reader.readAsText(file);
   };
   
-  const handleCloudProjectLoad = useCallback(async (projectData: ProjectData) => {
+  const handleProjectLoad = useCallback(async (projectData: ProjectData) => {
         if (!projectData.audioDataUrl || !projectData.lyrics || !projectData.syncData) {
             throw new Error("Invalid project file format");
         }
@@ -328,7 +228,6 @@ const SetupMode: React.FC<SetupModeProps> = ({ onStartSync, onLoadProject }) => 
 
   return (
     <>
-      <CloudProjectsModal isOpen={isCloudModalOpen} onClose={() => setIsCloudModalOpen(false)} onLoadProject={handleCloudProjectLoad} />
       {savedSetupDraft && (
         <Card className="p-5 mb-6 bg-blue-50 border-blue-300">
             <div className="text-center">
@@ -395,11 +294,11 @@ const SetupMode: React.FC<SetupModeProps> = ({ onStartSync, onLoadProject }) => 
             <div className="flex justify-center flex-wrap gap-4">
                  <button onClick={handleLoadProjectClick} title="เปิดไฟล์โปรเจกต์ (.lsk) ที่บันทึกไว้" className="w-full sm:w-auto flex items-center justify-center gap-3 px-6 py-3 rounded-xl font-semibold text-base transition-all duration-200 ease-in-out bg-white border border-gray-300 text-gray-700 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
                     <Icons name="upload" className="w-5 h-5" />
-                    <span>โหลดโปรเจกต์ (จากเครื่อง)</span>
+                    <span>โหลดโปรเจกต์ (จากไฟล์)</span>
                 </button>
-                <button onClick={() => setIsCloudModalOpen(true)} title="เปิดโปรเจกต์ที่บันทึกไว้บนคลาวด์" className="w-full sm:w-auto flex items-center justify-center gap-3 px-6 py-3 rounded-xl font-semibold text-base transition-all duration-200 ease-in-out bg-white border border-gray-300 text-gray-700 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                <button onClick={onGoToProjects} title="เปิดโปรเจกต์ที่บันทึกไว้บนคลาวด์" className="w-full sm:w-auto flex items-center justify-center gap-3 px-6 py-3 rounded-xl font-semibold text-base transition-all duration-200 ease-in-out bg-white border border-gray-300 text-gray-700 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
                     <Icons name="folder" className="w-5 h-5" />
-                    <span>โหลดจากคลาวด์</span>
+                    <span>โปรเจกต์ของฉัน</span>
                 </button>
             </div>
         </div>

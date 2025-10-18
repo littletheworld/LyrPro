@@ -18,7 +18,6 @@ interface AudioControlsProps {
   onSaveProject?: () => void;
   onReset?: () => void;
   onReplayLine?: () => void;
-  onExportLrc?: () => void;
   isVocalRemoverOn?: boolean;
   onToggleVocalRemover?: () => void;
   isVisible?: boolean;
@@ -33,7 +32,6 @@ const AudioControls: React.FC<AudioControlsProps> = ({
   onSaveProject,
   onReset,
   onReplayLine,
-  onExportLrc,
   isVocalRemoverOn,
   onToggleVocalRemover,
   isVisible,
@@ -162,15 +160,12 @@ const AudioControls: React.FC<AudioControlsProps> = ({
             <button onClick={onBackToSync} className={iconButtonClasses} title="กลับไปแก้ไข" aria-label="กลับไปแก้ไข"><Icons name="edit" className="w-5 h-5" /></button>
             <button onClick={onReset} className={iconButtonClasses} title="เริ่มต้นใหม่" aria-label="เริ่มต้นใหม่"><Icons name="reset" className="w-5 h-5" /></button>
             <div className="h-6 w-px bg-white/30 mx-1"></div>
-            <button onClick={onSaveProject} className={`${actionButtonBaseClasses} bg-blue-600 text-white hover:bg-blue-700 focus:ring-blue-500`} title="บันทึกโปรเจกต์เป็นไฟล์ .lsk"><Icons name="save" className="w-4 h-4"/><span>บันทึก (เครื่อง)</span></button>
+            <button onClick={onSaveProject} className={`${actionButtonBaseClasses} bg-blue-600 text-white hover:bg-blue-700 focus:ring-blue-500`} title="บันทึกโปรเจกต์เป็นไฟล์ .lsk"><Icons name="save" className="w-4 h-4"/><span>บันทึก (ไฟล์)</span></button>
             {onSaveToCloud && (
                 <button onClick={onSaveToCloud} disabled={cloudSaveState === 'saving' || cloudSaveState === 'success'} className={`${actionButtonBaseClasses} bg-purple-600 text-white hover:bg-purple-700 focus:ring-purple-500 disabled:bg-purple-400`} title="บันทึกโปรเจกต์ขึ้นคลาวด์">
                     <Icons name="cloud-upload" className="w-4 h-4"/>
                     <span>{getCloudSaveButtonContent()}</span>
                 </button>
-            )}
-            {onExportLrc && (
-                <button onClick={onExportLrc} className={`${actionButtonBaseClasses} bg-green-500 text-white hover:bg-green-600 focus:ring-green-400`} title="ส่งออกเป็นไฟล์ LRC"><Icons name="export" className="w-4 h-4"/><span>Export LRC</span></button>
             )}
         </div>
       </div>

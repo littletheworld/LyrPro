@@ -269,14 +269,6 @@ const PreviewMode: React.FC<PreviewModeProps> = ({
     }
   }, [audioFile, lyrics, syncData, songTitle, artist, albumArtUrl, credits]);
 
-  const handleExportLrc = useCallback(() => {
-    if (audioRef.current?.duration) {
-      exportToLrcFile(syncData, songTitle, artist, audioRef.current.duration);
-    } else {
-      alert("ไม่สามารถ export ได้เนื่องจากยังไม่ทราบความยาวของเพลง");
-    }
-  }, [syncData, songTitle, artist]);
-
   const handleLineClick = useCallback((line: SyncLine) => {
     const audio = audioRef.current;
     if (!audio) return;
@@ -512,7 +504,7 @@ const PreviewMode: React.FC<PreviewModeProps> = ({
         </div>
         
         {!isAutoScrolling && (
-            <div className="sticky bottom-6 w-full flex justify-center z-20">
+            <div className="sticky bottom-32 w-full flex justify-center z-40">
             <button
                 onClick={() => setIsAutoScrolling(true)}
                 className="flex items-center gap-2 px-4 py-2 rounded-full bg-white/20 backdrop-blur-sm text-white font-semibold shadow-lg hover:bg-white/30 transition-all animate-bounce"
@@ -532,7 +524,6 @@ const PreviewMode: React.FC<PreviewModeProps> = ({
           onBackToSync={() => onBackToSync(sortedSyncData.findIndex(l => l.id === focusLineId))}
           onSaveProject={handleSaveProject}
           onReset={onReset}
-          onExportLrc={handleExportLrc}
           isVocalRemoverOn={isVocalRemoverOn}
           onToggleVocalRemover={handleToggleVocalRemover}
           isVisible={isControlsVisible}
