@@ -147,8 +147,9 @@ const PreviewMode: React.FC<PreviewModeProps> = ({
     if (!audio || hasAudioGraphSetup.current) return;
     hasAudioGraphSetup.current = true;
     try {
-        // FIX: Pass an empty object to the AudioContext constructor to satisfy environments that expect an argument.
-        const context = new (window.AudioContext || (window as any).webkitAudioContext)({});
+        // FIX: The AudioContext constructor is called without arguments for broader compatibility.
+        // The previous implementation with `{}` could cause issues in some environments.
+        const context = new (window.AudioContext || (window as any).webkitAudioContext)();
         audioContextRef.current = context;
         const source = context.createMediaElementSource(audio);
         const splitter = context.createChannelSplitter(2);
