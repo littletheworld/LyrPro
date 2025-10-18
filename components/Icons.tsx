@@ -1,7 +1,7 @@
 import React from 'react';
 
 interface IconProps {
-  name: 'upload' | 'play' | 'pause' | 'prev' | 'next' | 'done' | 'replay' | 'edit' | 'export' | 'reset' | 'save' | 'microphone' | 'plusCircle' | 'bars3' | 'link' | 'unlink' | 'user' | 'xCircle' | 'chevron-up' | 'chevron-down' | 'subtitles' | 'trash' | 'photo' | 'pencil-square' | 'swatches' | 'sparkles' | 'cloud-upload' | 'folder';
+  name: 'upload' | 'play' | 'pause' | 'prev' | 'next' | 'done' | 'replay' | 'edit' | 'export' | 'reset' | 'save' | 'microphone' | 'plusCircle' | 'bars3' | 'link' | 'unlink' | 'user' | 'xCircle' | 'chevron-up' | 'chevron-down' | 'subtitles' | 'trash' | 'photo' | 'pencil-square' | 'swatches' | 'sparkles' | 'cloud-upload' | 'folder' | 'arrow-down-to-line';
   className?: string;
 }
 
@@ -148,6 +148,12 @@ const Icons: React.FC<IconProps> = ({ name, className = "w-6 h-6" }) => {
       <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className={className}>
         <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 9.75h16.5a.75.75 0 01.75.75v9a.75.75 0 01-.75.75H3.75a.75.75 0 01-.75-.75v-9a.75.75 0 01.75-.75z" />
         <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 8.25v-3a2.25 2.25 0 012.25-2.25h3.75a.75.75 0 01.6.3L11.25 5.25H18a2.25 2.25 0 012.25 2.25v.75" />
+      </svg>
+    ),
+    'arrow-down-to-line': (
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className={className}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m0 0l-6-6m6 6l6-6" />
+        <path strokeLinecap="round" strokeLinejoin="round" d="M3 21h18" />
       </svg>
     ),
   };

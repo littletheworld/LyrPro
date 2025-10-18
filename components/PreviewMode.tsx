@@ -120,7 +120,7 @@ const PreviewMode: React.FC<PreviewModeProps> = ({
   const effectGainRef = useRef<GainNode | null>(null);
   const [dynamicBgColors, setDynamicBgColors] = useState<string[]>([]);
   const [isEditingMetadata, setIsEditingMetadata] = useState(false);
-  const [isControlsVisible, setIsControlsVisible] = useState(false);
+  const [isControlsVisible, setIsControlsVisible] = useState(true);
   const controlsTimerRef = useRef<number | null>(null);
   const [cloudSaveState, setCloudSaveState] = useState<'idle' | 'saving' | 'success' | 'error'>('idle');
 
@@ -139,7 +139,6 @@ const PreviewMode: React.FC<PreviewModeProps> = ({
     return { background: `linear-gradient(-45deg, ${dynamicBgColors[0]}, ${dynamicBgColors[1]}, ${dynamicBgColors[0]})`, backgroundSize: '400% 400%', animation: 'gradient-flow 30s ease infinite' };
   }, [dynamicBgColors]);
 
-  const topFadeStyle = useMemo(() => ({ background: `linear-gradient(to bottom, ${dynamicBgColors[0] || '#0f0c29'} 15%, transparent)` }), [dynamicBgColors]);
   const bottomFadeStyle = useMemo(() => ({ background: `linear-gradient(to top, ${dynamicBgColors[0] || '#0f0c29'} 15%, transparent)` }), [dynamicBgColors]);
 
   useEffect(() => {
@@ -147,7 +146,7 @@ const PreviewMode: React.FC<PreviewModeProps> = ({
     if (!audio || hasAudioGraphSetup.current) return;
     hasAudioGraphSetup.current = true;
     try {
-        // FIX: The AudioContext constructor expected an argument but received none. Passing an empty object to satisfy the constructor signature.
+        // Fix: Pass an empty object to the AudioContext constructor to prevent an error where it expects one argument.
         const context = new (window.AudioContext || (window as any).webkitAudioContext)({});
         audioContextRef.current = context;
         const source = context.createMediaElementSource(audio);
@@ -442,32 +441,27 @@ const PreviewMode: React.FC<PreviewModeProps> = ({
         initialData={{ title: songTitle, artist, credits, artUrl: albumArtUrl }}
       />
       
-      <div 
-        className="absolute top-0 left-0 right-0 h-40 z-10 pointer-events-none"
-        style={topFadeStyle} 
-      />
-      <div 
-        className="absolute bottom-0 left-0 right-0 h-40 z-10 pointer-events-none"
-        style={bottomFadeStyle}
-      />
-      
-      <header className={`relative z-20 p-4 transition-opacity duration-300 ${isControlsVisible ? 'opacity-100' : 'opacity-0'}`}>
+      <header className="absolute top-0 left-0 right-0 z-30 p-4 bg-gradient-to-b from-black/50 to-transparent pointer-events-none">
         <div className="flex items-center gap-4">
-          {albumArtUrl && ( <img src={albumArtUrl} alt={`${artist} - ${songTitle}`} className="w-16 h-16 rounded-md shadow-lg" /> )}
-          <div>
-            <h1 className="text-2xl font-bold text-shadow-md">{songTitle}</h1>
-            <h2 className="text-lg font-medium text-gray-200 text-shadow-sm">{artist}</h2>
-            {credits && (<p className="text-xs text-gray-300 italic mt-1 text-shadow-sm">{credits}</p>)}
+          {albumArtUrl && ( <img src={albumArtUrl} alt={`${artist} - ${songTitle}`} className="w-14 h-14 rounded-md shadow-lg" /> )}
+          <div className="flex-grow min-w-0">
+            <h1 className="text-xl font-bold text-shadow-md truncate">{songTitle}</h1>
+            <h2 className="text-base font-medium text-gray-200 text-shadow-sm truncate">{artist}</h2>
           </div>
-          <button onClick={() => setIsEditingMetadata(true)} className="ml-2 p-2 rounded-full hover:bg-white/10 transition-colors" title="แก้ไขข้อมูลเพลง">
+          <button onClick={() => setIsEditingMetadata(true)} className="ml-2 p-2 rounded-full hover:bg-white/10 transition-colors shrink-0 pointer-events-auto" title="แก้ไขข้อมูลเพลง">
               <Icons name="pencil-square" className="w-5 h-5"/>
           </button>
         </div>
       </header>
+      
+      <div 
+        className="absolute bottom-0 left-0 right-0 h-40 z-10 pointer-events-none"
+        style={bottomFadeStyle}
+      />
 
       <main 
         id="lyrics-container"
-        className="flex-grow overflow-y-auto px-4 md:px-8 py-16 relative z-10"
+        className="flex-grow overflow-y-auto px-4 md:px-8 pt-24 pb-48 relative z-10"
         onWheel={() => setIsAutoScrolling(false)}
         onTouchStart={() => setIsAutoScrolling(false)}
       >
@@ -475,7 +469,6 @@ const PreviewMode: React.FC<PreviewModeProps> = ({
           {linesAndPlaceholders.map((line) => {
               if (!('chars' in line)) {
                   return (
-                      // FIX: Ensure ref callback handles cleanup and does not return a value.
                       <div key={line.id} ref={el => { if (el) lineRefs.current.set(line.id, el); else lineRefs.current.delete(line.id); }} className="h-16 flex items-center justify-center">
                           <Icons name="swatches" className="w-6 h-6 text-gray-400 opacity-50" />
                       </div>
@@ -488,7 +481,6 @@ const PreviewMode: React.FC<PreviewModeProps> = ({
               const isActive = activeLineIds.includes(line.id);
 
               return (
-                  // FIX: Ensure ref callback handles cleanup and does not return a value.
                   <div key={line.id} ref={el => { if (el) lineRefs.current.set(line.id, el); else lineRefs.current.delete(line.id); }} onClick={() => handleLineClick(line)}>
                       <AnimatedLyricLine
                           lineData={line}
@@ -501,6 +493,19 @@ const PreviewMode: React.FC<PreviewModeProps> = ({
               );
           })}
         </div>
+        
+        {!isAutoScrolling && (
+            <div className="sticky bottom-6 w-full flex justify-center z-20">
+            <button
+                onClick={() => setIsAutoScrolling(true)}
+                className="flex items-center gap-2 px-4 py-2 rounded-full bg-white/20 backdrop-blur-sm text-white font-semibold shadow-lg hover:bg-white/30 transition-all animate-bounce"
+                title="กลับไปยังบรรทัดปัจจุบัน"
+            >
+                <Icons name="arrow-down-to-line" className="w-5 h-5" />
+                <span>กลับมายังจุดเดิม</span>
+            </button>
+            </div>
+        )}
       </main>
 
       <footer className="relative z-20">
