@@ -517,17 +517,19 @@ const PreviewMode: React.FC<PreviewModeProps> = ({
                   </div>
               )}
             </div>
-            {!isAutoScrolling && (
-                <button
-                    onClick={handleResumeAutoScroll}
-                    className={`fixed right-6 z-50 p-3 rounded-full bg-blue-600 text-white shadow-lg hover:bg-blue-700 transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-white ${isControlsVisible ? 'bottom-40' : 'bottom-24'}`}
-                    title="กลับไปที่ท่อนปัจจุบัน"
-                >
-                    <Icons name="chevron-down" className="w-6 h-6" />
-                </button>
-            )}
           </div>
       </div>
+      
+      {!isAutoScrolling && (
+          <button
+              onClick={handleResumeAutoScroll}
+              className="fixed bottom-36 right-6 z-50 p-4 rounded-full bg-white/20 backdrop-blur-md border border-white/30 text-white shadow-lg hover:bg-white/30 transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-white"
+              title="กลับไปที่ท่อนปัจจุบัน"
+              aria-label="กลับไปที่ท่อนปัจจุบัน"
+          >
+              <Icons name="chevron-down" className="w-6 h-6" />
+          </button>
+      )}
       
       <AudioControls 
         audioRef={audioRef}

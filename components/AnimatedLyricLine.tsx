@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { type SyncLine } from '../types';
 import { getLineStartTime, getAdlibEndTime, getMainLineEndTime } from '../utils/projectUtils';
 import ProgressFillText from './ProgressFillText';
@@ -11,31 +11,8 @@ interface AnimatedLyricLineProps {
   nextLineStartTime: number | null;
 }
 
-// Custom hook to get the previous value of a prop or state
-function usePrevious<T>(value: T): T | undefined {
-  // FIX: useRef with a generic type requires an initial value.
-  const ref = useRef<T | undefined>(undefined);
-  useEffect(() => {
-    ref.current = value;
-  });
-  return ref.current;
-}
-
-
 const AnimatedLyricLine: React.FC<AnimatedLyricLineProps> = ({ lineData, currentTime, isActive, singer, nextLineStartTime }) => {
   const lineStartTime = getLineStartTime(lineData);
-  const [animationClass, setAnimationClass] = useState('');
-  const prevIsActive = usePrevious(isActive);
-
-  useEffect(() => {
-    // Apply animation only when transitioning from inactive to active
-    if (prevIsActive === false && isActive === true) {
-      setAnimationClass('line-focus-animation');
-    } else if (prevIsActive === true && isActive === false) {
-      // Reset the class when it becomes inactive, so it can animate again later
-      setAnimationClass('');
-    }
-  }, [isActive, prevIsActive]);
 
   // Determine the core status: is the line in the past?
   const isCurrentlyPast = !isActive && lineStartTime < currentTime;
@@ -65,13 +42,17 @@ const AnimatedLyricLine: React.FC<AnimatedLyricLineProps> = ({ lineData, current
     : 'future';
 
   const statusStyles = {
-    active: { opacity: 1, transform: 'scale(1)', filter: 'blur(0px)' },
+    active: { opacity: 1, transform: 'scale(1) translateY(0px)', filter: 'blur(0px)' },
     past: { 
       opacity: 0.5, 
-      transform: 'scale(0.8)', 
+      transform: 'scale(0.95) translateY(-10px)', // Past lines are smaller and shifted up
       filter: isBlurred ? 'blur(1px)' : 'blur(0px)' // Conditionally apply blur
     },
-    future: { opacity: 0.5, transform: 'scale(0.8)', filter: 'blur(1px)' },
+    future: { 
+      opacity: 0.5, 
+      transform: 'scale(0.95) translateY(10px)', // Future lines are smaller and shifted down
+      filter: 'blur(1px)' 
+    },
   };
   
   const currentStyle = statusStyles[lineStatus];
@@ -82,8 +63,8 @@ const AnimatedLyricLine: React.FC<AnimatedLyricLineProps> = ({ lineData, current
   // The sung color is now consistently white for all singers to maintain a clean, uniform look.
   const sungColor = '#FFFFFF';
   
-  const sizeClasses = 'text-3xl md:text-4xl leading-relaxed break-all';
-  const adlibSizeClasses = 'text-xl md:text-2xl leading-relaxed break-all';
+  const sizeClasses = 'text-3xl md:text-4xl leading-relaxed break-words';
+  const adlibSizeClasses = 'text-xl md:text-2xl leading-relaxed break-words';
   const fontWeight = isActive ? 'font-semibold' : 'font-medium';
 
   const textAlignClass = singer === 2 ? 'text-right' : 'text-left';
@@ -94,7 +75,7 @@ const AnimatedLyricLine: React.FC<AnimatedLyricLineProps> = ({ lineData, current
   
   return (
     <div
-      className={`tracking-wide transition-[opacity,transform,filter] duration-700 ease-out ${animationClass}`}
+      className={`tracking-wide transition-[opacity,transform,filter] duration-700 ease-out`}
       style={currentStyle}
     >
         <div className={`py-1 ${textAlignClass} ${fontWeight}`}>
