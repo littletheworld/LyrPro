@@ -1,6 +1,10 @@
 import { put, list, del, type ListBlobResultBlob } from '@vercel/blob';
 import { type ProjectData } from '../types';
 
+// Client-side Vercel Blob operations require a token.
+// This should be provided via an environment variable named BLOB_READ_WRITE_TOKEN.
+const BLOB_TOKEN = process.env.BLOB_READ_WRITE_TOKEN;
+
 /**
  * Uploads the project data to Vercel Blob storage.
  */
@@ -15,8 +19,7 @@ export const uploadProjectToCloud = async (projectData: ProjectData): Promise<st
   try {
     const blob = await put(fileName, projectFile, {
       access: 'public',
-      // Client-side uploads require a token in the Vercel project's environment variables.
-      // The variable should be named BLOB_READ_WRITE_TOKEN.
+      token: BLOB_TOKEN,
     });
     return blob.url;
   } catch (error) {
@@ -30,7 +33,7 @@ export const uploadProjectToCloud = async (projectData: ProjectData): Promise<st
  */
 export const listCloudProjects = async (): Promise<ListBlobResultBlob[]> => {
   try {
-    const { blobs } = await list();
+    const { blobs } = await list({ token: BLOB_TOKEN });
     return blobs
       .filter(blob => blob.pathname.endsWith('.lsk'))
       .sort((a, b) => new Date(b.uploadedAt).getTime() - new Date(a.uploadedAt).getTime());
@@ -65,7 +68,7 @@ export const loadProjectFromCloud = async (url: string): Promise<ProjectData> =>
  */
 export const deleteProjectFromCloud = async (url: string): Promise<void> => {
     try {
-        await del(url);
+        await del(url, { token: BLOB_TOKEN });
     } catch (error) {
         console.error('Error deleting project from Vercel Blob:', error);
         throw new Error('Failed to delete project from the cloud.');
