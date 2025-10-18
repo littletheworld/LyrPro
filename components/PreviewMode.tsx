@@ -147,7 +147,8 @@ const PreviewMode: React.FC<PreviewModeProps> = ({
     if (!audio || hasAudioGraphSetup.current) return;
     hasAudioGraphSetup.current = true;
     try {
-        const context = new (window.AudioContext || (window as any).webkitAudioContext)();
+        // FIX: Pass an empty object to the AudioContext constructor to satisfy environments that expect an argument.
+        const context = new (window.AudioContext || (window as any).webkitAudioContext)({});
         audioContextRef.current = context;
         const source = context.createMediaElementSource(audio);
         const splitter = context.createChannelSplitter(2);
@@ -172,7 +173,6 @@ const PreviewMode: React.FC<PreviewModeProps> = ({
     const resumeContext = () => { if (audioContextRef.current && audioContextRef.current.state === 'suspended') { audioContextRef.current.resume(); } };
     const handleFirstPlay = () => { resumeContext(); audio.removeEventListener('play', handleFirstPlay); };
     audio.addEventListener('play', handleFirstPlay);
-    // FIX: Changed console.error to an arrow function to avoid potential context issues and add more descriptive logging.
     return () => {
       audio.removeEventListener('play', handleFirstPlay);
       const audioCtx = audioContextRef.current;
@@ -382,16 +382,36 @@ const PreviewMode: React.FC<PreviewModeProps> = ({
   }, [focusLineId, sortedSyncData]);
 
   useEffect(() => {
-    if (isAutoScrolling && anchorLineId) {
-        const targetElement = lineRefs.current.get(anchorLineId);
-        if (targetElement) targetElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    if (!anchorLineId) {
+        if (isAutoScrolling) {
+            const container = document.getElementById('lyrics-container');
+            if (container) container.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+        return;
     }
-  }, [anchorLineId, isAutoScrolling]);
-  
-  const handleUserScroll = () => { if (isAutoScrolling) setIsAutoScrolling(false); };
-  const handleResumeAutoScroll = () => { setIsAutoScrolling(true); };
+    
+    const lineElement = lineRefs.current.get(anchorLineId);
+    const lineData = linesAndPlaceholders.find(l => l.id === anchorLineId);
 
-  const handleSaveMetadata = async (updates: { title: string; artist: string; credits: string; newArtFile?: File }) => {
+    if (lineElement && lineData && isAutoScrolling) {
+      const container = document.getElementById('lyrics-container');
+      if (!container) return;
+      
+      const containerHeight = container.clientHeight;
+      const lineTop = lineElement.offsetTop;
+      
+      const isInstrumental = !('chars' in lineData);
+      
+      let targetScrollTop = lineTop - (containerHeight * (isInstrumental ? 0.45 : 0.4));
+      
+      container.scrollTo({
+        top: Math.max(0, targetScrollTop),
+        behavior: 'smooth',
+      });
+    }
+  }, [anchorLineId, isAutoScrolling, linesAndPlaceholders]);
+
+  const handleMetadataSave = async (updates: { title: string; artist: string; credits: string; newArtFile?: File }) => {
     let newArtUrl: string | null = albumArtUrl;
     if (updates.newArtFile) {
       newArtUrl = await new Promise((resolve) => {
@@ -400,77 +420,105 @@ const PreviewMode: React.FC<PreviewModeProps> = ({
         reader.readAsDataURL(updates.newArtFile!);
       });
     }
-    onUpdateMetadata({ title: updates.title, artist: updates.artist, credits: updates.credits, albumArtUrl: newArtUrl });
+    onUpdateMetadata({
+      title: updates.title,
+      artist: updates.artist,
+      credits: updates.credits,
+      albumArtUrl: newArtUrl,
+    });
   };
 
   return (
-    <div className="fixed inset-0 bg-black text-white flex flex-col z-50 karaoke-bg" style={dynamicBgStyle} onMouseMove={showAndAutoHideControls} onTouchStart={showAndAutoHideControls}>
-      <audio ref={audioRef} src={audioUrl} className="hidden" crossOrigin="anonymous" />
-       <MetadataEditorModal isOpen={isEditingMetadata} onClose={() => setIsEditingMetadata(false)} onSave={handleSaveMetadata} initialData={{ title: songTitle, artist: artist, credits: credits, artUrl: albumArtUrl }} />
-      <div className="absolute top-0 left-0 right-0 z-20 backdrop-blur-md">
-          <div className="w-full max-w-5xl mx-auto px-4 md:px-8 py-4">
-              <div className="flex items-center gap-3">
-                  {albumArtUrl && <img src={albumArtUrl} alt={`${artist} - ${songTitle}`} className="w-16 h-16 object-cover rounded-md shadow-md flex-shrink-0" />}
-                  <div className="flex-grow min-w-0">
-                      <div className="flex items-start gap-2">
-                          <div className="truncate">
-                              <h2 className="text-base font-bold text-white truncate [text-shadow:0_1px_3px_rgba(0,0,0,0.5)]" title={songTitle}>{songTitle || 'Untitled Song'}</h2>
-                              <p className="text-sm text-gray-300 truncate [text-shadow:0_1px_3px_rgba(0,0,0,0.5)]" title={artist}>{artist || 'Unknown Artist'}</p>
-                          </div>
-                          <button onClick={() => setIsEditingMetadata(true)} className="p-1 rounded-full text-gray-300 hover:bg-white/20 hover:text-white transition-opacity shrink-0" title="แก้ไขข้อมูลเพลง"><Icons name="pencil-square" className="w-4 h-4"/></button>
-                      </div>
-                  </div>
-              </div>
-          </div>
-      </div>
-      <div className="relative w-full h-full flex flex-col overflow-hidden">
-         <div style={topFadeStyle} className="absolute top-0 left-0 right-0 h-40 z-10 pointer-events-none"></div>
-         <div style={bottomFadeStyle} className="absolute bottom-0 left-0 right-0 h-40 z-10 pointer-events-none"></div>
-          <div onWheel={handleUserScroll} onTouchStart={handleUserScroll} className="w-full max-w-5xl mx-auto flex-grow overflow-y-auto overflow-x-hidden scroll-smooth scroll-pt-[35vh] pt-[35vh] pb-[60vh] px-4 md:px-8">
-            <div>
-              {linesAndPlaceholders.map((line) => {
-                  const lineRefCallback = (el: HTMLDivElement | null) => { el ? lineRefs.current.set(line.id, el) : lineRefs.current.delete(line.id); };
-                  if ('type' in line && line.type === 'instrumental') {
-                    return <div key={line.id} ref={lineRefCallback} className="h-12"></div>;
-                  }
-
-                  const lineGlobalIndex = sortedSyncData.findIndex(l => l.id === line.id);
-                  const isActive = activeLineIds.includes(line.id);
-                  const singer = line.singer || 1;
-                  const alignmentContainerClass = singer === 2 ? 'justify-end' : 'justify-start';
-                  const nextLine = sortedSyncData[lineGlobalIndex + 1];
-                  const nextLineStartTime = nextLine ? getLineStartTime(nextLine) : (audioDuration && audioDuration > 0 ? audioDuration : null);
-                  const editButtonClass = singer === 2 ? 'left-2' : 'right-2';
-
-                  return (
-                    <div ref={lineRefCallback} key={line.id} className="group/line" onClick={() => handleLineClick(line)}>
-                        <div className={`flex ${alignmentContainerClass}`}>
-                          <div className={`relative w-full max-w-4xl ${singer === 2 ? 'pl-12' : 'pr-12'}`}>
-                              <button onClick={(e) => { e.stopPropagation(); onBackToSync(lineGlobalIndex); }} className={`absolute top-1/2 -translate-y-1/2 p-2 rounded-full bg-white/10 text-white/70 hover:bg-white/20 hover:text-white transition-opacity opacity-0 group-hover/line:opacity-100 ${editButtonClass}`} title="แก้ไขท่อนนี้"><Icons name="edit" className="w-5 h-5" /></button>
-                              <AnimatedLyricLine lineData={line} currentTime={currentTime} isActive={isActive} singer={singer} nextLineStartTime={nextLineStartTime} />
-                          </div>
-                        </div>
-                    </div>
-                  );
-              })}
-              {credits && <div className="text-center mt-20 pt-10 text-gray-400 opacity-80 flex items-center justify-center gap-2"><Icons name="sparkles" className="w-5 h-5"/><p>{credits}</p></div>}
-            </div>
-            {!isAutoScrolling && <button onClick={handleResumeAutoScroll} className={`fixed right-6 z-50 p-3 rounded-full bg-blue-600 text-white shadow-lg hover:bg-blue-700 transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-white ${isControlsVisible ? 'bottom-40' : 'bottom-24'}`} title="กลับไปที่ท่อนปัจจุบัน"><Icons name="chevron-down" className="w-6 h-6" /></button>}
-          </div>
-      </div>
-      <AudioControls 
-        audioRef={audioRef}
-        showPreviewControls
-        onBackToSync={() => onBackToSync()}
-        onSaveProject={handleSaveProject}
-        onReset={onReset}
-        onExportLrc={handleExportLrc}
-        isVocalRemoverOn={isVocalRemoverOn}
-        onToggleVocalRemover={handleToggleVocalRemover}
-        isVisible={isControlsVisible}
-        onSaveToCloud={handleSaveToCloud}
-        cloudSaveState={cloudSaveState}
+    <div 
+      className="karaoke-bg w-full h-screen text-white flex flex-col overflow-hidden" 
+      style={dynamicBgStyle}
+      onClick={showAndAutoHideControls}
+      onMouseMove={showAndAutoHideControls}
+    >
+      <MetadataEditorModal 
+        isOpen={isEditingMetadata}
+        onClose={() => setIsEditingMetadata(false)}
+        onSave={handleMetadataSave}
+        initialData={{ title: songTitle, artist, credits, artUrl: albumArtUrl }}
       />
+      
+      <div 
+        className="absolute top-0 left-0 right-0 h-40 z-10 pointer-events-none"
+        style={topFadeStyle} 
+      />
+      <div 
+        className="absolute bottom-0 left-0 right-0 h-40 z-10 pointer-events-none"
+        style={bottomFadeStyle}
+      />
+      
+      <header className={`relative z-20 p-4 transition-opacity duration-300 ${isControlsVisible ? 'opacity-100' : 'opacity-0'}`}>
+        <div className="flex items-center gap-4">
+          {albumArtUrl && ( <img src={albumArtUrl} alt={`${artist} - ${songTitle}`} className="w-16 h-16 rounded-md shadow-lg" /> )}
+          <div>
+            <h1 className="text-2xl font-bold text-shadow-md">{songTitle}</h1>
+            <h2 className="text-lg font-medium text-gray-200 text-shadow-sm">{artist}</h2>
+            {credits && (<p className="text-xs text-gray-300 italic mt-1 text-shadow-sm">{credits}</p>)}
+          </div>
+          <button onClick={() => setIsEditingMetadata(true)} className="ml-2 p-2 rounded-full hover:bg-white/10 transition-colors" title="แก้ไขข้อมูลเพลง">
+              <Icons name="pencil-square" className="w-5 h-5"/>
+          </button>
+        </div>
+      </header>
+
+      <main 
+        id="lyrics-container"
+        className="flex-grow overflow-y-auto px-4 md:px-8 py-16 relative z-10"
+        onWheel={() => setIsAutoScrolling(false)}
+        onTouchStart={() => setIsAutoScrolling(false)}
+      >
+        <div className="w-full max-w-4xl mx-auto space-y-4">
+          {linesAndPlaceholders.map((line) => {
+              if (!('chars' in line)) {
+                  return (
+                      // FIX: Ensure ref callback handles cleanup and does not return a value.
+                      <div key={line.id} ref={el => { if (el) lineRefs.current.set(line.id, el); else lineRefs.current.delete(line.id); }} className="h-16 flex items-center justify-center">
+                          <Icons name="swatches" className="w-6 h-6 text-gray-400 opacity-50" />
+                      </div>
+                  );
+              }
+              
+              const currentLineIndex = sortedSyncData.findIndex(l => l.id === line.id);
+              const nextLine = sortedSyncData[currentLineIndex + 1];
+              const nextLineStartTime = nextLine ? getLineStartTime(nextLine) : null;
+              const isActive = activeLineIds.includes(line.id);
+
+              return (
+                  // FIX: Ensure ref callback handles cleanup and does not return a value.
+                  <div key={line.id} ref={el => { if (el) lineRefs.current.set(line.id, el); else lineRefs.current.delete(line.id); }} onClick={() => handleLineClick(line)}>
+                      <AnimatedLyricLine
+                          lineData={line}
+                          currentTime={currentTime}
+                          isActive={isActive}
+                          singer={line.singer || 1}
+                          nextLineStartTime={nextLineStartTime}
+                      />
+                  </div>
+              );
+          })}
+        </div>
+      </main>
+
+      <footer className="relative z-20">
+        <AudioControls
+          audioRef={audioRef}
+          showPreviewControls
+          onBackToSync={() => onBackToSync(sortedSyncData.findIndex(l => l.id === focusLineId))}
+          onSaveProject={handleSaveProject}
+          onReset={onReset}
+          onExportLrc={handleExportLrc}
+          isVocalRemoverOn={isVocalRemoverOn}
+          onToggleVocalRemover={handleToggleVocalRemover}
+          isVisible={isControlsVisible}
+          onSaveToCloud={handleSaveToCloud}
+          cloudSaveState={cloudSaveState}
+        />
+        <audio ref={audioRef} src={audioUrl} className="hidden" />
+      </footer>
     </div>
   );
 };
