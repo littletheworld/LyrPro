@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { type SyncLine } from '../types';
 import Button from './Button';
@@ -601,10 +602,11 @@ export const SyncMode: React.FC<SyncModeProps> = ({ audioUrl, audioFile, lyrics,
         />
         
         <div className="flex justify-center items-center gap-4 mt-6 flex-wrap">
-            <Button variant="secondary" onClick={() => changeLine(Math.max(0, currentLine - 1), { seek: true })} disabled={currentLine === 0} icon={<Icons name="prev"/>} title="ไปยังบรรทัดก่อนหน้าและรีเซ็ตเวลา">
+            <Button size="small" variant="secondary" onClick={() => changeLine(Math.max(0, currentLine - 1), { seek: true })} disabled={currentLine === 0} icon={<Icons name="prev"/>} title="ไปยังบรรทัดก่อนหน้าและรีเซ็ตเวลา">
                 บรรทัดก่อนหน้า
             </Button>
             <Button 
+                size="small"
                 onClick={() => onFinish(currentLine)} 
                 icon={<Icons name="done" />} 
                 disabled={unsyncedLinesCount > 0}
@@ -614,8 +616,8 @@ export const SyncMode: React.FC<SyncModeProps> = ({ audioUrl, audioFile, lyrics,
             </Button>
         </div>
         <div className="flex justify-center items-center gap-4 mt-4">
-            <Button variant="secondary" onClick={onBack} icon={<Icons name="edit" className="w-5 h-5"/>} title="กลับไปแก้ไขโครงสร้างเนื้อเพลง">กลับไปจัดโครงสร้าง</Button>
-            <Button variant="secondary" onClick={handleResetTimings} icon={<Icons name="reset" className="w-5 h-5"/>} title="ลบข้อมูลเวลาที่ซิงก์ไว้ทั้งหมด">รีเซ็ตเวลา</Button>
+            <Button size="small" variant="secondary" onClick={onBack} icon={<Icons name="edit" className="w-5 h-5"/>} title="กลับไปแก้ไขโครงสร้างเนื้อเพลง">กลับไปจัดโครงสร้าง</Button>
+            <Button size="small" variant="secondary" onClick={handleResetTimings} icon={<Icons name="reset" className="w-5 h-5"/>} title="ลบข้อมูลเวลาที่ซิงก์ไว้ทั้งหมด">รีเซ็ตเวลา</Button>
         </div>
         <div className="text-center mt-4 h-6">
             {unsyncedLinesCount > 0 ? (

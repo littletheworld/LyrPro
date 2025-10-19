@@ -106,13 +106,9 @@ const PreviewMode: React.FC<PreviewModeProps> = ({
 }) => {
   const audioRef = useRef<HTMLAudioElement>(null);
   const [currentTime, setCurrentTime] = useState(0);
-  // FIX: useRef with a generic type requires an initial value.
   const animationFrameRef = useRef<number | undefined>(undefined);
   const lineRefs = useRef<Map<string, HTMLDivElement>>(new Map());
   const audioDuration = audioRef.current?.duration;
-
-  const [anchorLineId, setAnchorLineId] = useState<string | null>(null);
-  const activeGroupIdRef = useRef<string | null>(null);
   const [isAutoScrolling, setIsAutoScrolling] = useState(true);
 
   // Vocal Remover State and Refs
@@ -128,6 +124,7 @@ const PreviewMode: React.FC<PreviewModeProps> = ({
   const [isControlsVisible, setIsControlsVisible] = useState(false);
   const controlsTimerRef = useRef<number | null>(null);
 
+  const [focusLineId, setFocusLineId] = useState<string | null>(null);
 
   const sortedSyncData = useMemo(() => {
     return [...syncData].sort((a, b) => getLineStartTime(a) - getLineStartTime(b));
@@ -222,8 +219,6 @@ const PreviewMode: React.FC<PreviewModeProps> = ({
     if (audioContextRef.current && audioContextRef.current.state === 'suspended') { audioContextRef.current.resume(); }
     setIsVocalRemoverOn(prev => !prev);
   }, []);
-  
-  const [focusLineId, setFocusLineId] = useState<string | null>(null);
   
   const showAndAutoHideControls = useCallback(() => {
     setIsControlsVisible(true);
@@ -367,45 +362,46 @@ const PreviewMode: React.FC<PreviewModeProps> = ({
     return { activeLineIds: activeIds, mostRecentStartedId: mostRecentId };
   }, [currentTime, sortedSyncData, effectiveLineEndTimes]);
 
+  const visiblyActiveLineIds = useMemo(() => {
+    const activeLines = sortedSyncData.filter(l => activeLineIds.includes(l.id));
+
+    if (activeLines.length <= 2) {
+      return activeLineIds;
+    }
+
+    // Sort by start time, descending (most recent first), and take the top 2
+    const sortedByStartTime = activeLines.sort((a, b) => getLineStartTime(b) - getLineStartTime(a));
+    return sortedByStartTime.slice(0, 2).map(l => l.id);
+  }, [activeLineIds, sortedSyncData]);
+
   useEffect(() => {
-    const isCurrentFocusStillActive = focusLineId ? activeLineIds.includes(focusLineId) : false;
-    if (isCurrentFocusStillActive) return;
     let nextFocusId: string | null = null;
     const currentlyActiveLines = sortedSyncData.filter(l => activeLineIds.includes(l.id));
+
     if (currentlyActiveLines.length > 0) {
-      nextFocusId = currentlyActiveLines.reduce((latest, current) => getLineStartTime(current) > getLineStartTime(latest) ? current : latest).id;
+      // Find the line among the currently active ones that started most recently.
+      nextFocusId = currentlyActiveLines.reduce((latest, current) => {
+        return getLineStartTime(current) > getLineStartTime(latest) ? current : latest;
+      }).id;
     } else {
+      // If no lines are active, fall back to the most recently started line overall.
       nextFocusId = mostRecentStartedId;
     }
-    if (nextFocusId && nextFocusId !== focusLineId) setFocusLineId(nextFocusId);
+    
+    // Only update state if the focus has actually changed.
+    if (nextFocusId && nextFocusId !== focusLineId) {
+      setFocusLineId(nextFocusId);
+    }
   }, [activeLineIds, mostRecentStartedId, focusLineId, sortedSyncData]);
   
   useEffect(() => {
-      if (!focusLineId) return;
-      const focusLine = sortedSyncData.find(l => l.id === focusLineId);
-      if (!focusLine) return;
-      const currentContextId = focusLine.groupId || focusLine.id;
-      if (currentContextId !== activeGroupIdRef.current) {
-          activeGroupIdRef.current = currentContextId;
-          let newAnchorLine = focusLine;
-          if (focusLine.groupId) {
-              const groupLines = sortedSyncData.filter(l => l.groupId === focusLine.groupId);
-              let earliestStartTimeInGroup = getLineStartTime(focusLine);
-              for (const lineInGroup of groupLines) {
-                  const lineStartTime = getLineStartTime(lineInGroup);
-                  if (lineStartTime < earliestStartTimeInGroup) { earliestStartTimeInGroup = lineStartTime; newAnchorLine = lineInGroup; }
-              }
-          }
-          setAnchorLineId(newAnchorLine.id);
-      }
-  }, [focusLineId, sortedSyncData]);
-
-  useEffect(() => {
-    if (isAutoScrolling && anchorLineId) {
-        const targetElement = lineRefs.current.get(anchorLineId);
-        if (targetElement) targetElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    if (isAutoScrolling && focusLineId) {
+        const targetElement = lineRefs.current.get(focusLineId);
+        if (targetElement) {
+            targetElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
     }
-  }, [anchorLineId, isAutoScrolling]);
+  }, [focusLineId, isAutoScrolling]);
   
   const handleUserScroll = () => { if (isAutoScrolling) setIsAutoScrolling(false); };
   const handleResumeAutoScroll = () => { setIsAutoScrolling(true); };
@@ -476,10 +472,9 @@ const PreviewMode: React.FC<PreviewModeProps> = ({
             <div>
               {linesAndPlaceholders.map((line) => {
                   const lineRefCallback = (el: HTMLDivElement | null) => { el ? lineRefs.current.set(line.id, el) : lineRefs.current.delete(line.id); };
-                  // FIX: Use a type guard to correctly narrow the union type.
                   if ('type' in line && line.type === 'instrumental') return <div key={line.id} ref={lineRefCallback} className="h-12"></div>;
                   const lineGlobalIndex = sortedSyncData.findIndex(l => l.id === line.id);
-                  const isActive = activeLineIds.includes(line.id);
+                  const isActive = visiblyActiveLineIds.includes(line.id);
                   const singer = line.singer || 1;
                   const alignmentContainerClass = singer === 2 ? 'justify-end' : 'justify-start';
                   const isSynced = getLineStartTime(line) !== Infinity;

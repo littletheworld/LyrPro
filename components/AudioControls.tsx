@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import Button from './Button';
 import Icons from './Icons';
@@ -230,7 +231,7 @@ const AudioControls: React.FC<AudioControlsProps> = ({
                 <Icons name="replay" className="w-5 h-5" />
             </button>
             {onReplayLine && (
-                <Button variant="secondary" onClick={onReplayLine} icon={<Icons name="replay" className="w-5 h-5"/>} title="เริ่มซิงก์บรรทัดปัจจุบันใหม่อีกครั้ง">ซิงก์ท่อนนี้ใหม่</Button>
+                <Button size="small" variant="secondary" onClick={onReplayLine} icon={<Icons name="replay" className="w-5 h-5"/>} title="เริ่มซิงก์บรรทัดปัจจุบันใหม่อีกครั้ง">ซิงก์ท่อนนี้ใหม่</Button>
             )}
         </div>
     </div>
